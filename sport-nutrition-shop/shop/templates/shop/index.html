@@ -1,0 +1,94 @@
+{% extends 'shop/base.html' %}
+{% block title %}Каталог{% endblock %}
+
+{% block content %}
+<!-- Welcome Section -->
+{% if selected_category %}
+    <!-- Category Description Section -->
+    <div class="bg-gradient-to-r from-green-600 to-green-400 text-white rounded-2xl shadow-lg mb-12 p-8">
+        <h1 class="text-4xl font-bold mb-4">{{ selected_category.name }}</h1>
+        {% if selected_category.description %}
+            <p class="text-lg text-green-100">{{ selected_category.description }}</p>
+        {% endif %}
+    </div>
+{% else %}
+    <!-- Default Welcome Section -->
+    <div class="bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-2xl shadow-lg mb-12 p-8">
+        <h1 class="text-4xl font-bold mb-4">Ласкаво просимо до SportShop!</h1>
+        <p class="text-lg text-blue-100 mb-4">
+            Ми пропонуємо найкращу якість спортивного харчування та товарів для здорового способу життя.
+        </p>
+        <p class="text-blue-100">
+            Дивіться наш каталог і обирайте саме те, що вам потрібно для досягнення ваших фітнес-цілей.
+        </p>
+    </div>
+{% endif %}
+
+<!-- Products Section -->
+<h2 class="text-2xl font-bold mb-6">Каталог товарів</h2>
+
+<!-- Filters -->
+<div class="bg-white rounded-2xl shadow-sm p-6 mb-8">
+    <div class="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+        <!-- Category Filter -->
+        <div class="flex-1">
+            <label class="block text-sm font-semibold mb-2">Категорія:</label>
+            <select id="categoryFilter" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Всі категорії</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if selected_category_id|stringformat:"s" == category.id|stringformat:"s" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Sort Filter -->
+        <div class="flex-1">
+            <label class="block text-sm font-semibold mb-2">Сортування:</label>
+            <select id="sortFilter" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">За замовчуванням</option>
+                <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Найновіші</option>
+                <option value="price_asc" {% if selected_sort == 'price_asc' %}selected{% endif %}>Ціна: від низької до високої</option>
+                <option value="price_desc" {% if selected_sort == 'price_desc' %}selected{% endif %}>Ціна: від високої до низької</option>
+            </select>
+        </div>
+
+        <!-- Clear Filters -->
+        <div>
+            <a href="{% url 'shop:index' %}" class="inline-block mt-6 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
+                Очистити фільтри
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Products Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+    {% for product in products %}
+        <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition p-4">
+            {% if product.image %}
+                <img src="{{ product.image.url }}"
+                     class="rounded-xl mb-4 h-48 w-full object-cover">
+            {% endif %}
+
+            <h3 class="font-semibold text-lg">{{ product.name }}</h3>
+            <p class="text-gray-500 mb-3">{{ product.price }} ₴</p>
+
+            <a href="{% url 'shop:product_detail' product.id %}"
+               class="block text-center bg-black text-white py-2 rounded-xl hover:bg-gray-800 transition">
+                Переглянути
+            </a>
+        </div>
+    {% empty %}
+        <div class="col-span-full text-center py-12">
+            <p class="text-gray-500 text-lg">Товари не знайдені</p>
+        </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% url 'shop:filters' %}"></script>
+{% endblock %}

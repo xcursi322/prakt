@@ -1,0 +1,22 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Замовлення оформлено{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Дякуємо за покупку!</h1>
+
+<p>Ваше замовлення №{{ order.id }} успішно створено.</p>
+<p>Загальна сума: {{ order.total }}₴</p>
+
+<h2>Дані по замовленню:</h2>
+<ul class="order-details">
+    <li>Ім'я: {{ order.first_name }}</li>
+    <li>Прізвище: {{ order.last_name }}</li>
+    <li>Email: {{ order.email }}</li>
+    <li>Телефон: {{ order.phone }}</li>
+    <li>Відділення пошти: {{ order.postal_branch }}</li>
+    <li>Спосіб оплати: {% if order.payment_method == 'online' %}Онлайн{% else %}Наложений платеж{% endif %}</li>
+</ul>
+
+<a href="{% url 'shop:index' %}" class="back-link">← Повернутися до каталогу</a>
+{% endblock %}

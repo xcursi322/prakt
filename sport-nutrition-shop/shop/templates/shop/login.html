@@ -1,0 +1,73 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Вхід - SportShop{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mt-8">
+    <h1 class="text-2xl font-bold mb-6 text-center">Вхід</h1>
+    
+    <form method="POST" class="space-y-4">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <!-- Username -->
+        <div>
+            <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium mb-1">Ім'я користувача</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+                <div class="text-red-600 text-sm mt-1">
+                    {% for error in form.username.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Password -->
+        <div>
+            <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium mb-1">Пароль</label>
+            {{ form.password }}
+            {% if form.password.errors %}
+                <div class="text-red-600 text-sm mt-1">
+                    {% for error in form.password.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700">
+            Увійти
+        </button>
+    </form>
+    
+    <div class="text-center mt-6">
+        <p class="text-gray-600">Немає акаунту? <a href="{% url 'shop:register' %}" class="text-blue-600 hover:underline">Зареєструватися</a></p>
+    </div>
+</div>
+
+<style>
+    input[type="text"],
+    input[type="password"] {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        font-size: 1rem;
+    }
+    
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+</style>
+{% endblock %}

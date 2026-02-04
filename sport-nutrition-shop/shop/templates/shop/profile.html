@@ -1,0 +1,165 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Мій профіль - SportShop{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8">👤 Мій профіль</h1>
+    
+    {% if success %}
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+            {{ success }}
+        </div>
+    {% endif %}
+    
+    <div class="bg-white rounded-lg shadow-md p-8">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- Row 1: First Name and Last Name -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- First Name -->
+                <div>
+                    <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium mb-2">Ім'я</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {% for error in form.first_name.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Last Name -->
+                <div>
+                    <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium mb-2">Прізвище</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {% for error in form.last_name.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Row 2: Email -->
+            <div>
+                <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium mb-2">Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.email.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Row 3: Phone -->
+            <div>
+                <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium mb-2">Номер телефону</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.phone.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Row 4: Address -->
+            <div>
+                <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium mb-2">Адреса</label>
+                {{ form.address }}
+                {% if form.address.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in form.address.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Row 5: City and Postal Code -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- City -->
+                <div>
+                    <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium mb-2">Місто</label>
+                    {{ form.city }}
+                    {% if form.city.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {% for error in form.city.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Postal Code -->
+                <div>
+                    <label for="{{ form.postal_code.id_for_label }}" class="block text-sm font-medium mb-2">Поштовий індекс</label>
+                    {{ form.postal_code }}
+                    {% if form.postal_code.errors %}
+                        <div class="text-red-600 text-sm mt-1">
+                            {% for error in form.postal_code.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700 transition">
+                💾 Зберегти зміни
+            </button>
+        </form>
+        
+        <!-- Additional Info -->
+        <div class="mt-8 pt-8 border-t">
+            <p class="text-gray-600 text-sm mb-4">
+                <strong>Логін:</strong> {{ customer.username }}
+            </p>
+            <p class="text-gray-600 text-sm">
+                <strong>Дата реєстрації:</strong> {{ customer.created_at|date:"d.m.Y" }}
+            </p>
+        </div>
+    </div>
+    
+    <!-- Navigation Links -->
+    <div class="mt-8 flex gap-4 justify-center">
+        <a href="{% url 'shop:orders' %}" class="text-blue-600 hover:underline">← Мої замовлення</a>
+        <a href="{% url 'shop:index' %}" class="text-blue-600 hover:underline">На головну →</a>
+    </div>
+</div>
+
+<style>
+    input[type="text"],
+    input[type="email"] {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        font-size: 1rem;
+    }
+    
+    input[type="text"]:focus,
+    input[type="email"]:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+</style>
+{% endblock %}

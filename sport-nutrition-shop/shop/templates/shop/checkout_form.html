@@ -1,0 +1,41 @@
+{% extends 'shop/base.html' %}
+{% block title %}Оформлення замовлення{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Оформлення замовлення</h1>
+
+<div class="mb-4 text-lg">
+    Загальна сума:
+    <span class="font-semibold">{{ total }} ₴</span>
+</div>
+
+<form method="post" class="max-w-md bg-white p-6 rounded-2xl shadow">
+    {% csrf_token %}
+
+    {% for field in form %}
+        <div class="mb-4">
+            <label class="block mb-1 font-medium">
+                {{ field.label }}
+            </label>
+
+            {{ field|safe }}
+
+            {% if field.errors %}
+                <p class="text-red-600 text-sm mt-1">
+                    {{ field.errors|striptags }}
+                </p>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <button type="submit"
+        class="w-full bg-black text-white py-3 rounded-xl hover:bg-gray-800 transition">
+        Підтвердити
+    </button>
+</form>
+
+<a href="{% url 'shop:cart' %}"
+   class="inline-block mt-4 text-blue-600 hover:underline">
+    ← Повернутися до корзини
+</a>
+{% endblock %}

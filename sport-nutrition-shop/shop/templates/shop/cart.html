@@ -1,0 +1,60 @@
+{% extends 'shop/base.html' %}
+{% block title %}Корзина{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Корзина</h1>
+
+{% if cart_items %}
+    <div class="space-y-4">
+        {% for item in cart_items %}
+            <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow">
+                <div>
+                    <p class="font-medium text-lg">
+                        {{ item.product.name }}
+                    </p>
+
+                    <div class="flex items-center gap-3 mt-2">
+                        <a href="{% url 'shop:decrease_quantity' item.product.id %}"
+                           class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">
+                            −
+                        </a>
+
+                        <span class="font-semibold">
+                            {{ item.quantity }}
+                        </span>
+
+                        <a href="{% url 'shop:increase_quantity' item.product.id %}"
+                           class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">
+                            +
+                        </a>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <p class="font-semibold text-lg">
+                        {{ item.subtotal }} ₴
+                    </p>
+
+                    <a href="{% url 'shop:remove_from_cart' item.product.id %}"
+                       class="text-sm text-red-600 hover:underline">
+                        Видалити
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-6 text-right">
+        <p class="text-xl font-bold mb-4">
+            Разом: {{ total }} ₴
+        </p>
+
+        <a href="{% url 'shop:checkout' %}"
+           class="inline-block bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition">
+            Оформити замовлення
+        </a>
+    </div>
+{% else %}
+    <p class="text-gray-500">Корзина порожня</p>
+{% endif %}
+{% endblock %}
