@@ -172,12 +172,12 @@ class ReviewForm(forms.ModelForm):
             }),
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Заголовок відзиву',
+                'placeholder': 'Заголовок відгуку',
                 'maxlength': '200'
             }),
             'text': forms.Textarea(attrs={
                 'class': 'form-control',
-                'placeholder': 'Напишіть ваш відзив...',
+                'placeholder': 'Напишіть ваш відгук...',
                 'rows': '5',
                 'maxlength': '5000'
             }),

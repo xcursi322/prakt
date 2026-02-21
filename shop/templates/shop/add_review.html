@@ -1,5 +1,5 @@
 {% extends 'shop/base.html' %}
-{% block title %}{% if existing_review %}Редагувати{% else %}Залишити{% endif %} відзив - {{ product.name }}{% endblock %}
+{% block title %}{% if existing_review %}Редагувати{% else %}Залишити{% endif %} відгук - {{ product.name }}{% endblock %}
 
 {% block content %}
 <!-- Back Link -->
@@ -11,9 +11,9 @@
 <div class="mb-8 fade-in-up">
     <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
         {% if existing_review %}
-            Редагувати відзив
+            Редагувати відгук
         {% else %}
-            Залишити відзив про товар
+            Залишити відгук про товар
         {% endif %}
     </h1>
     <p class="text-gray-600 text-lg">{{ product.name }}</p>
@@ -45,7 +45,7 @@
 
         <!-- Title -->
         <div class="form-group">
-            <label for="{{ form.title.id_for_label }}" class="font-bold text-gray-800 mb-2 block">Заголовок відзиву</label>
+            <label for="{{ form.title.id_for_label }}" class="font-bold text-gray-800 mb-2 block">Заголовок відгуку</label>
             {{ form.title }}
             {% if form.title.errors %}
                 <p class="text-red-500 text-sm mt-2">{{ form.title.errors.0 }}</p>
@@ -54,7 +54,7 @@
 
         <!-- Review Text -->
         <div class="form-group">
-            <label for="{{ form.text.id_for_label }}" class="font-bold text-gray-800 mb-2 block">Текст відзиву</label>
+            <label for="{{ form.text.id_for_label }}" class="font-bold text-gray-800 mb-2 block">Текст відгуку</label>
             {{ form.text }}
             <p class="text-gray-500 text-sm mt-2">Поділіться вашим досвідом використання цього товару</p>
             {% if form.text.errors %}
@@ -67,9 +67,9 @@
             <button type="submit" class="btn btn-primary flex-1 py-3 text-lg font-bold">
                 <i class="fas fa-check-circle"></i>
                 {% if existing_review %}
-                    Оновити відзив
+                    Оновити відгук
                 {% else %}
-                    Надіслати відзив
+                    Надіслати відгук
                 {% endif %}
             </button>
             <a href="{% url 'shop:product_detail' product.id %}" class="btn btn-secondary flex-1 py-3 text-lg font-bold">

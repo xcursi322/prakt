@@ -149,11 +149,11 @@
         </h2>
         {% if customer_id %}
             <a href="{% url 'shop:add_review' product.id %}" class="btn btn-primary">
-                <i class="fas fa-pen"></i> Залишити відзив
+                <i class="fas fa-pen"></i> Залишити відгук
             </a>
         {% else %}
             <a href="{% url 'shop:login' %}" class="btn btn-primary">
-                <i class="fas fa-sign-in-alt"></i> Увійти для відзиву
+                <i class="fas fa-sign-in-alt"></i> Увійти для відгуку
             </a>
         {% endif %}
     </div>
@@ -223,7 +223,7 @@
                     {% if is_admin %}
                         {% if not review.replies.all %}
                             <a href="{% url 'shop:add_reply' review.id %}" class="text-blue-600 hover:text-blue-800 font-semibold text-sm inline-flex items-center gap-1">
-                                <i class="fas fa-reply"></i> Відповісти на відзив
+                                <i class="fas fa-reply"></i> Відповісти на відгук
                             </a>
                         {% endif %}
                     {% endif %}
@@ -233,7 +233,7 @@
             <div class="text-center py-12 bg-gray-50 rounded-xl">
                 <i class="fas fa-comments text-gray-300 text-4xl mb-3"></i>
                 <p class="text-gray-600 text-lg">Немає відгуків про цей товар</p>
-                <p class="text-gray-500">Будьте першим, хто залишить відзив!</p>
+                <p class="text-gray-500">Будьте першим, хто залишить відгук!</p>
             </div>
         {% endif %}
     </div>
