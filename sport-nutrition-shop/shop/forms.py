@@ -1,5 +1,5 @@
 from django import forms
-from .models import Order, Customer
+from .models import Order, Customer, Review, ReviewReply
 
 PAYMENT_CHOICES = [
     ('online', 'Онлайн'),
@@ -9,19 +9,48 @@ PAYMENT_CHOICES = [
 class CheckoutForm(forms.ModelForm):
     payment_method = forms.ChoiceField(
         choices=PAYMENT_CHOICES, 
-        widget=forms.RadioSelect,
-        required=True
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+        }),
+        required=True,
+        error_messages={
+            'required': 'Оберіть спосіб оплати',
+        }
     )
 
     class Meta:
         model = Order
-        fields = ['first_name', 'last_name', 'email', 'phone', 'postal_branch', 'payment_method']
+        fields = [
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'address',
+            'city',
+            'postal_code',
+            'postal_branch',
+            'payment_method',
+        ]
+        labels = {
+            'first_name': "Ім'я",
+            'last_name': 'Прізвище',
+            'email': 'Email адреса',
+            'phone': 'Номер телефону',
+            'address': 'Адреса',
+            'city': 'Місто',
+            'postal_code': 'Поштовий індекс',
+            'postal_branch': 'Відділення або поштомат (Нова пошта)',
+            'payment_method': 'Спосіб оплати',
+        }
         widgets = {
-            'first_name': forms.TextInput(attrs={'required': True}),
-            'last_name': forms.TextInput(attrs={'required': True}),
-            'email': forms.EmailInput(attrs={'required': True}),
-            'phone': forms.TextInput(attrs={'required': True}),
-            'postal_branch': forms.TextInput(attrs={'required': True}),
+            'first_name': forms.TextInput(attrs={'required': True, 'class': 'form-control', 'placeholder': 'Ім\'я'}),
+            'last_name': forms.TextInput(attrs={'required': True, 'class': 'form-control', 'placeholder': 'Прізвище'}),
+            'email': forms.EmailInput(attrs={'required': True, 'class': 'form-control', 'placeholder': 'Email адреса'}),
+            'phone': forms.TextInput(attrs={'required': True, 'class': 'form-control', 'placeholder': 'Номер телефону'}),
+            'address': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Вулиця, будинок, квартира'}),
+            'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Місто'}),
+            'postal_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Поштовий індекс'}),
+            'postal_branch': forms.TextInput(attrs={'required': True, 'class': 'form-control', 'placeholder': 'Відділення або поштомат (Нова пошта)'}),
         }
 
 
@@ -129,5 +158,41 @@ class ProfileForm(forms.ModelForm):
             'postal_code': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Поштовий індекс'
+            }),
+        }
+
+
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['rating', 'title', 'text']
+        widgets = {
+            'rating': forms.RadioSelect(choices=Review.RATING_CHOICES, attrs={
+                'class': 'rating-input'
+            }),
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Заголовок відзиву',
+                'maxlength': '200'
+            }),
+            'text': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Напишіть ваш відзив...',
+                'rows': '5',
+                'maxlength': '5000'
+            }),
+        }
+
+
+class ReviewReplyForm(forms.ModelForm):
+    class Meta:
+        model = ReviewReply
+        fields = ['text']
+        widgets = {
+            'text': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Напишіть відповідь...',
+                'rows': '3',
+                'maxlength': '2000'
             }),
         }

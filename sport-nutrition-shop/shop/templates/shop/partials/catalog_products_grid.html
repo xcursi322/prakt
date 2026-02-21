@@ -1,0 +1,34 @@
+{% for product in products %}
+<div class="product-card-perfect" data-product-name="{{ product.name|lower }}">
+    <div class="product-card-perfect-imgwrap">
+        <a href="{% url 'shop:product_detail' product.id %}">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-card-perfect-img" loading="lazy">
+            {% else %}
+                <div class="no-image"><i class="fas fa-box"></i></div>
+            {% endif %}
+        </a>
+            <a class="product-card-perfect-plus" href="{% url 'shop:add_to_cart' product.id %}" data-add-to-cart-url="{% url 'shop:add_to_cart' product.id %}" title="Додати в кошик" aria-label="Додати в кошик">
+                <i class="fas fa-plus"></i>
+            </a>
+    </div>
+    <div class="product-card-perfect-title">{{ product.name }}</div>
+    <div class="product-card-perfect-rating">
+        <span class="stars">
+            {% with avg=product.reviews.aggregate_avg_rating|default:5 %}
+            {% for i in "12345" %}
+                {% if forloop.counter <= product.reviews.aggregate_avg_rating|default:5 %}
+                    <span class="star-full">&#9733;</span>
+                {% else %}
+                    <span class="star-empty">&#9733;</span>
+                {% endif %}
+            {% endfor %}
+            {% endwith %}
+        </span>
+        <span class="rating-count">{{ product.rating_count|default:0 }}</span>
+    </div>
+    <div class="product-card-perfect-price">{{ product.price|floatformat:0 }} ГРН</div>
+</div>
+{% empty %}
+<div class="no-products">Товари не знайдені</div>
+{% endfor %}

@@ -1,0 +1,68 @@
+{% extends 'shop/base.html' %}
+{% block title %}Відповідь на відзив{% endblock %}
+
+{% block content %}
+<!-- Back Link -->
+<a href="{% url 'shop:product_detail' review.product.id %}" class="back-link text-blue-600 font-semibold mb-6 inline-flex items-center gap-2 hover:gap-3">
+    <i class="fas fa-chevron-left"></i> Повернутись до товара
+</a>
+
+<!-- Page Title -->
+<div class="mb-8 fade-in-up">
+    <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+        <i class="fas fa-reply text-blue-600"></i> Написати відповідь на відзив
+    </h1>
+</div>
+
+<!-- Review Quote -->
+<div class="max-w-2xl mx-auto bg-blue-50 rounded-2xl border-l-4 border-blue-600 p-6 mb-8 fade-in-up">
+    <p class="font-bold text-blue-900 mb-2">Оригінальний відзив:</p>
+    <h3 class="text-lg font-bold text-gray-900 mb-2">{{ review.title }}</h3>
+    <div class="flex items-center gap-3 mb-3">
+        <div class="flex gap-0.5">
+            {% for i in "12345" %}
+                {% if forloop.counter <= review.rating %}
+                    <i class="fas fa-star text-yellow-400 text-sm"></i>
+                {% else %}
+                    <i class="fas fa-star text-gray-300 text-sm"></i>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <span class="text-sm text-gray-600">
+            <strong>{{ review.customer.first_name }} {{ review.customer.last_name }}</strong>
+            • {{ review.created_at|date:"d.m.Y" }}
+        </span>
+    </div>
+    <p class="text-gray-700">{{ review.text }}</p>
+</div>
+
+<!-- Reply Form -->
+<div class="review-form-page max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 fade-in-up">
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Reply Text -->
+        <div class="form-group">
+            <label for="{{ form.text.id_for_label }}" class="font-bold text-gray-800 mb-2 block">
+                <i class="fas fa-pen text-blue-600"></i> Ваша відповідь
+            </label>
+            {{ form.text }}
+            <p class="text-gray-500 text-sm mt-2">Максимум 2000 символів</p>
+            {% if form.text.errors %}
+                <p class="text-red-500 text-sm mt-2">{{ form.text.errors.0 }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex gap-4 pt-6 border-t-2 border-gray-200">
+            <button type="submit" class="btn btn-primary flex-1 py-3 text-lg font-bold">
+                <i class="fas fa-check-circle"></i> Надіслати відповідь
+            </button>
+            <a href="{% url 'shop:product_detail' review.product.id %}" class="btn btn-secondary flex-1 py-3 text-lg font-bold">
+                <i class="fas fa-times"></i> Скасувати
+            </a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

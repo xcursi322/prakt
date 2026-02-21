@@ -1,22 +1,190 @@
 {% extends 'shop/base.html' %}
 
-{% block title %}Замовлення оформлено{% endblock %}
+{% block title %}Замовлення оформлено!{% endblock %}
 
 {% block content %}
-<h1 class="page-title">Дякуємо за покупку!</h1>
+<!-- Success Message -->
+<div class="text-center fade-in-up mb-12">
+    <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full shadow-lg mb-6">
+        <i class="fas fa-check text-white text-4xl"></i>
+    </div>
+    <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Дякуємо за покупку!</h1>
+    <p class="text-xl text-gray-600">Ваше замовлення успішно оформлено та буде оброблено в найближчий час</p>
+</div>
 
-<p>Ваше замовлення №{{ order.id }} успішно створено.</p>
-<p>Загальна сума: {{ order.total }}₴</p>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 fade-in-up">
+    <!-- Order Details -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Order Number -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-8">
+            <p class="text-gray-600 text-sm mb-2 flex items-center gap-2">
+                <i class="fas fa-hashtag text-blue-600"></i> Номер замовлення
+            </p>
+            <p class="text-4xl font-bold text-blue-600">№{{ order.id }}</p>
+            <p class="text-gray-600 mt-2">
+                <i class="fas fa-calendar text-gray-400"></i> 
+                Дата: {{ order.created_at|date:"d.m.Y" }}
+            </p>
+        </div>
 
-<h2>Дані по замовленню:</h2>
-<ul class="order-details">
-    <li>Ім'я: {{ order.first_name }}</li>
-    <li>Прізвище: {{ order.last_name }}</li>
-    <li>Email: {{ order.email }}</li>
-    <li>Телефон: {{ order.phone }}</li>
-    <li>Відділення пошти: {{ order.postal_branch }}</li>
-    <li>Спосіб оплати: {% if order.payment_method == 'online' %}Онлайн{% else %}Наложений платеж{% endif %}</li>
-</ul>
+        <!-- Order Total -->
+        <div class="bg-white border-2 border-gray-200 rounded-2xl shadow-md p-8">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b-2 border-gray-200">
+                <span class="text-gray-700 text-lg">Сума товарів:</span>
+                <span class="font-bold text-lg">{{ order.total }} ₴</span>
+            </div>
+            <div class="flex justify-between items-center mb-4 pb-4 border-b-2 border-gray-200">
+                <span class="text-gray-700 text-lg">Доставка:</span>
+                <span class="font-bold text-lg text-green-600">Безкоштовно</span>
+            </div>
+            <div class="flex justify-between items-center text-2xl">
+                <span class="font-bold text-gray-900">До сплати:</span>
+                <span class="font-bold text-blue-600">{{ order.total }} ₴</span>
+            </div>
+        </div>
 
-<a href="{% url 'shop:index' %}" class="back-link">← Повернутися до каталогу</a>
+        <!-- Customer Information -->
+        <div class="bg-white border-2 border-gray-200 rounded-2xl shadow-md p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <i class="fas fa-user text-blue-600"></i> Дані по замовленню
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-gray-600 text-sm mb-1 flex items-center gap-1">
+                        <i class="fas fa-user-circle text-blue-600"></i> Ім'я
+                    </p>
+                    <p class="font-bold text-gray-900">{{ order.first_name }}</p>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-gray-600 text-sm mb-1 flex items-center gap-1">
+                        <i class="fas fa-user-circle text-blue-600"></i> Прізвище
+                    </p>
+                    <p class="font-bold text-gray-900">{{ order.last_name }}</p>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-gray-600 text-sm mb-1 flex items-center gap-1">
+                        <i class="fas fa-envelope text-blue-600"></i> Email
+                    </p>
+                    <p class="font-bold text-gray-900">{{ order.email }}</p>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-gray-600 text-sm mb-1 flex items-center gap-1">
+                        <i class="fas fa-phone text-blue-600"></i> Телефон
+                    </p>
+                    <p class="font-bold text-gray-900">{{ order.phone }}</p>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-4 sm:col-span-2">
+                    <p class="text-gray-600 text-sm mb-1 flex items-center gap-1">
+                        <i class="fas fa-map-marker-alt text-blue-600"></i> Адреса доставки
+                    </p>
+                    <p class="font-bold text-gray-900">
+                        {% if order.address %}
+                            {{ order.address }}, {{ order.city }}
+                            {% if order.postal_code %}<br>Поштовий індекс: {{ order.postal_code }}{% endif %}
+                        {% else %}
+                            Не вказана
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-4 sm:col-span-2">
+                    <p class="text-gray-600 text-sm mb-1 flex items-center gap-1">
+                        <i class="fas fa-info-circle text-blue-600"></i> Спосіб доставки
+                    </p>
+                    <p class="font-bold text-gray-900">
+                        {% if order.delivery_method %}
+                            {{ order.delivery_method }}
+                        {% else %}
+                            На розсмотрению
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-8">
+            <h3 class="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-list-check"></i> Наступні кроки
+            </h3>
+            <ol class="space-y-3 text-blue-900">
+                <li class="flex items-start gap-3">
+                    <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span>
+                    <span>Ми переглянемо ваше замовлення і надішлемо підтвердження на email</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span>
+                    <span>Товари будуть упаковані та готові до відправки</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span>
+                    <span>Ви отримаєте SMS/Email з інформацією про відправку</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">4</span>
+                    <span>Товари прибудуть за 1-3 робочих дні</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="lg:col-span-1">
+        <!-- Quick Actions -->
+        <div class="bg-white border-2 border-gray-200 rounded-2xl shadow-md p-8 sticky top-24 fade-in-up">
+            <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <i class="fas fa-rocket text-blue-600"></i> Що далі?
+            </h3>
+
+            <div class="space-y-3 mb-8">
+                <div class="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <i class="fas fa-check-circle text-green-600 text-xl mt-1"></i>
+                    <div>
+                        <p class="font-bold text-green-900 text-sm">Замовлення прийнято</p>
+                        <p class="text-green-700 text-xs">Чекайте на підтвердження</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <i class="fas fa-clock text-gray-600 text-xl mt-1"></i>
+                    <div>
+                        <p class="font-bold text-gray-900 text-sm">Обробка</p>
+                        <p class="text-gray-700 text-xs">1-24 години</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <i class="fas fa-truck text-gray-600 text-xl mt-1"></i>
+                    <div>
+                        <p class="font-bold text-gray-900 text-sm">Відправка</p>
+                        <p class="text-gray-700 text-xs">1-3 дні</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support -->
+            <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 text-center mb-8">
+                <p class="text-sm text-gray-600 mb-2">Потрібна допомога?</p>
+                <a href="#" class="text-blue-600 font-bold hover:text-blue-800 flex items-center justify-center gap-2">
+                    <i class="fas fa-headset"></i> Зв'яжіться з нами
+                </a>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-3">
+                <a href="{% url 'shop:home' %}" class="btn btn-primary w-full py-3 font-bold flex items-center justify-center gap-2">
+                    <i class="fas fa-home"></i> На головну
+                </a>
+                <a href="{% url 'shop:catalog' %}" class="btn btn-secondary w-full py-3 font-bold flex items-center justify-center gap-2">
+                    <i class="fas fa-shopping-bag"></i> Каталог
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

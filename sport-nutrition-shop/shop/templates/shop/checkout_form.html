@@ -2,40 +2,189 @@
 {% block title %}Оформлення замовлення{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">Оформлення замовлення</h1>
-
-<div class="mb-4 text-lg">
-    Загальна сума:
-    <span class="font-semibold">{{ total }} ₴</span>
+<!-- Page Header -->
+<div class="mb-12 fade-in-up">
+    <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+            <i class="fas fa-lock"></i>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Оформлення замовлення</h1>
+    </div>
+    <p class="text-gray-600 text-lg">Заповніть форму для завершення замовлення</p>
 </div>
 
-<form method="post" class="max-w-md bg-white p-6 rounded-2xl shadow">
-    {% csrf_token %}
+<div class="checkout-page grid grid-cols-1 lg:grid-cols-3 gap-8 fade-in-up">
+    <!-- Checkout Form -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-2xl shadow-lg p-8 border-2 border-gray-100">
+            <form method="post" data-validate>
+                {% csrf_token %}
 
-    {% for field in form %}
-        <div class="mb-4">
-            <label class="block mb-1 font-medium">
-                {{ field.label }}
-            </label>
+                {% if form.non_field_errors %}
+                    <div class="form-error mb-6">
+                        <i class="fas fa-exclamation-circle"></i>
+                        {{ form.non_field_errors|striptags }}
+                    </div>
+                {% endif %}
 
-            {{ field|safe }}
+                <!-- Personal Information Section -->
+                <div class="mb-8 pb-8 border-b-2 border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <i class="fas fa-user text-blue-600"></i> Контактні дані
+                    </h2>
 
-            {% if field.errors %}
-                <p class="text-red-600 text-sm mt-1">
-                    {{ field.errors|striptags }}
-                </p>
-            {% endif %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {% for field in form %}
+                            {% if field.name in "first_name last_name email phone" %}
+                                <div class="form-group {% if field.name == 'email' or field.name == 'phone' %}sm:col-span-2{% endif %}">
+                                    <label for="{{ field.id_for_label }}" class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        {% if field.name == 'first_name' %}
+                                            <i class="fas fa-user-circle text-blue-600"></i>
+                                        {% elif field.name == 'last_name' %}
+                                            <i class="fas fa-user-circle text-blue-600"></i>
+                                        {% elif field.name == 'email' %}
+                                            <i class="fas fa-envelope text-blue-600"></i>
+                                        {% elif field.name == 'phone' %}
+                                            <i class="fas fa-phone text-blue-600"></i>
+                                        {% endif %}
+                                        {{ field.label }}
+                                        {% if field.field.required %}<span class="text-red-600">*</span>{% endif %}
+                                    </label>
+                                    {{ field|safe }}
+                                    {% if field.errors %}
+                                        <div class="form-error">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            {{ field.errors|striptags }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Address Section -->
+                <div class="mb-8 pb-8 border-b-2 border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <i class="fas fa-map-marker-alt text-blue-600"></i> Адреса доставки
+                    </h2>
+
+                    <div class="space-y-6">
+                        {% for field in form %}
+                            {% if field.name in "address city postal_code postal_branch" %}
+                                <div class="form-group">
+                                    <label for="{{ field.id_for_label }}" class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        {% if field.name == 'address' %}
+                                            <i class="fas fa-home text-blue-600"></i>
+                                        {% elif field.name == 'city' %}
+                                            <i class="fas fa-building text-blue-600"></i>
+                                        {% elif field.name == 'postal_code' %}
+                                            <i class="fas fa-barcode text-blue-600"></i>
+                                        {% elif field.name == 'postal_branch' %}
+                                            <i class="fas fa-box text-blue-600"></i>
+                                        {% endif %}
+                                        {{ field.label }}
+                                        {% if field.field.required %}<span class="text-red-600">*</span>{% endif %}
+                                    </label>
+                                    {{ field|safe }}
+                                    {% if field.errors %}
+                                        <div class="form-error">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            {{ field.errors|striptags }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Payment Method -->
+                {% for field in form %}
+                    {% if field.name == "payment_method" %}
+                        <div class="mb-8">
+                            <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                <i class="fas fa-credit-card text-blue-600"></i> Спосіб оплати
+                            </h2>
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}" class="font-semibold text-gray-700 mb-2">
+                                    {{ field.label }} {% if field.field.required %}<span class="text-red-600">*</span>{% endif %}
+                                </label>
+                                {{ field|safe }}
+                                {% if field.errors %}
+                                    <div class="form-error">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        {{ field.errors|striptags }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary w-full py-4 text-lg font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl">
+                    <i class="fas fa-check-circle"></i> Підтвердити замовлення
+                </button>
+            </form>
         </div>
-    {% endfor %}
 
-    <button type="submit"
-        class="w-full bg-black text-white py-3 rounded-xl hover:bg-gray-800 transition">
-        Підтвердити
-    </button>
-</form>
+        <!-- Back Link -->
+        <div class="mt-6">
+            <a href="{% url 'shop:cart' %}" class="back-link inline-flex items-center gap-2 text-blue-600 font-semibold hover:gap-3">
+                <i class="fas fa-arrow-left"></i> Повернутися до кошика
+            </a>
+        </div>
+    </div>
 
-<a href="{% url 'shop:cart' %}"
-   class="inline-block mt-4 text-blue-600 hover:underline">
-    ← Повернутися до корзини
-</a>
+    <!-- Order Summary Sidebar -->
+    <div class="lg:col-span-1">
+        <div class="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-2xl shadow-xl p-8 sticky top-24 fade-in-up">
+            <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                <i class="fas fa-receipt"></i> Підсумок замовлення
+            </h2>
+
+            <!-- Order Total -->
+            <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white border-opacity-20">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-blue-100">Сума товарів:</span>
+                    <span class="font-bold">{{ total }} ₴</span>
+                </div>
+                <div class="flex justify-between items-center mb-4 pb-4 border-b border-blue-300">
+                    <span class="text-blue-100">Доставка:</span>
+                    <span class="text-green-300 font-bold">Безкоштовно</span>
+                </div>
+                <div class="flex justify-between items-center text-2xl font-bold">
+                    <span>До сплати:</span>
+                    <span class="text-yellow-300">{{ total }} ₴</span>
+                </div>
+            </div>
+
+            <!-- Security Info -->
+            <div class="space-y-3 text-sm text-blue-100">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-shield-alt text-green-300"></i>
+                    <span>Безпечна оплата</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-truck text-green-300"></i>
+                    <span>Швидка доставка</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-undo text-green-300"></i>
+                    <span>Гарантія якості</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Form validation on input
+    document.querySelectorAll('form[data-validate] input, form[data-validate] textarea, form[data-validate] select').forEach(field => {
+        field.addEventListener('blur', function() {
+            validateField.call(this);
+        });
+    });
+</script>
 {% endblock %}

@@ -1,0 +1,177 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Доставка - SportShop{% endblock %}
+
+{% block content %}
+<section class="delivery-hero fade-in-up">
+    <div class="delivery-hero-bg"></div>
+    <div class="delivery-hero-content">
+        <span class="delivery-chip"><i class="fas fa-truck-fast"></i> Доставка за 24-48 годин</span>
+        <h1>Доставка SportShop</h1>
+        <p>Прозорі умови, контроль на кожному етапі, оновлення статусу в SMS та email. Обирайте зручний формат і отримуйте замовлення швидко.</p>
+        <div class="delivery-hero-actions">
+            <a href="{% url 'shop:catalog' %}" class="delivery-btn is-primary">
+                <i class="fas fa-bag-shopping"></i> Перейти до каталогу
+            </a>
+            <a href="#delivery-faq" class="delivery-btn is-ghost">
+                <i class="fas fa-circle-question"></i> Питання та відповіді
+            </a>
+        </div>
+        <div class="delivery-hero-metrics">
+            <div>
+                <span>48h</span>
+                <small>середній час доставки</small>
+            </div>
+            <div>
+                <span>0%</span>
+                <small>прихованих платежів</small>
+            </div>
+            <div>
+                <span>24/7</span>
+                <small>підтримка</small>
+            </div>
+        </div>
+    </div>
+    <div class="delivery-hero-cards">
+        <div class="delivery-card">
+            <i class="fas fa-box"></i>
+            <h3>Дбайливе пакування</h3>
+            <p>Усі замовлення фіксуємо в захисних коробках та плівці.</p>
+        </div>
+        <div class="delivery-card">
+            <i class="fas fa-route"></i>
+            <h3>Трекінг статусів</h3>
+            <p>Надсилаємо трек-номер одразу після відправки.</p>
+        </div>
+        <div class="delivery-card">
+            <i class="fas fa-hand-holding-heart"></i>
+            <h3>Перевірка на місці</h3>
+            <p>Перевіряйте комплектність при отриманні.</p>
+        </div>
+    </div>
+</section>
+
+<section class="delivery-section fade-in-up">
+    <div class="delivery-section-head">
+        <span>Обирайте зручний формат</span>
+        <h2>Способи доставки</h2>
+        <p>Працюємо з популярними перевізниками та пропонуємо самовивіз у Києві.</p>
+    </div>
+    <div class="delivery-grid">
+        <article>
+            <div class="delivery-grid-icon is-blue"><i class="fas fa-truck"></i></div>
+            <h3>Нова Пошта</h3>
+            <p>Доставка у відділення або поштомат. 1-2 робочі дні.</p>
+            <ul>
+                <li>Безкоштовно від 1500 грн</li>
+                <li>Передоплата або післяплата</li>
+                <li>SMS сповіщення</li>
+            </ul>
+        </article>
+        <article>
+            <div class="delivery-grid-icon is-orange"><i class="fas fa-person-biking"></i></div>
+            <h3>Кур&apos;єр по Києву</h3>
+            <p>Доставимо до дверей у межах міста протягом 24 годин.</p>
+            <ul>
+                <li>Вікна доставки: 10:00-20:00</li>
+                <li>Погодження часу з менеджером</li>
+                <li>Безкоштовно від 2000 грн</li>
+            </ul>
+        </article>
+        <article>
+            <div class="delivery-grid-icon is-green"><i class="fas fa-store"></i></div>
+            <h3>Самовивіз</h3>
+            <p>Забирайте замовлення з шоуруму у зручний час.</p>
+            <ul>
+                <li>м. Київ, вул. Спортивна, 12</li>
+                <li>Пн-Пт: 10:00-19:00</li>
+                <li>Безкоштовно завжди</li>
+            </ul>
+        </article>
+    </div>
+</section>
+
+<section class="delivery-pricing fade-in-up">
+    <div class="delivery-section-head">
+        <span>Чіткі умови</span>
+        <h2>Вартість доставки</h2>
+        <p>Без прихованих платежів. Оплата онлайн або при отриманні.</p>
+    </div>
+    <div class="delivery-pricing-grid">
+        <div>
+            <h3>До 1500 грн</h3>
+            <p class="delivery-price">від 70 грн</p>
+            <p>Стандартна доставка у відділення або поштомат.</p>
+        </div>
+        <div class="is-highlight">
+            <h3>Від 1500 грн</h3>
+            <p class="delivery-price">безкоштовно</p>
+            <p>Для НП та поштоматів, діє по всій Україні.</p>
+        </div>
+        <div>
+            <h3>Кур&apos;єр Київ</h3>
+            <p class="delivery-price">120 грн</p>
+            <p>Або безкоштовно від 2000 грн.</p>
+        </div>
+    </div>
+</section>
+
+<section class="delivery-zones fade-in-up">
+    <div>
+        <h2>Зони покриття</h2>
+        <p>Відправляємо по всій Україні. Працюємо щодня, окрім неділі.</p>
+        <div class="delivery-zones-tags">
+            <span><i class="fas fa-city"></i> Київ та область</span>
+            <span><i class="fas fa-train"></i> Обласні центри</span>
+            <span><i class="fas fa-route"></i> Районні міста</span>
+            <span><i class="fas fa-box-open"></i> Поштомати</span>
+        </div>
+    </div>
+    <div class="delivery-zones-card">
+        <h3>Деталі самовивозу</h3>
+        <p>Покажіть номер замовлення та документ. Час зберігання — 3 дні.</p>
+        <ul>
+            <li><strong>Адреса:</strong> м. Київ, вул. Спортивна, 12</li>
+            <li><strong>Графік:</strong> Пн-Пт 10:00-19:00</li>
+            <li><strong>Телефон:</strong> +38 (095) 123-45-67</li>
+        </ul>
+    </div>
+</section>
+
+<section id="delivery-faq" class="delivery-faq fade-in-up">
+    <div class="delivery-section-head">
+        <span>FAQ</span>
+        <h2>Питання та відповіді</h2>
+        <p>Найчастіші запити щодо доставки.</p>
+    </div>
+    <div class="delivery-faq-grid">
+        <details open>
+            <summary>Чи можна змінити адресу після оформлення?</summary>
+            <p>Так, зверніться до підтримки протягом 2 годин після підтвердження замовлення.</p>
+        </details>
+        <details>
+            <summary>Як перевірити статус доставки?</summary>
+            <p>Після відправки ви отримуєте трек-номер у SMS та email. Додатково статус видно в особистому кабінеті.</p>
+        </details>
+        <details>
+            <summary>Чи є післяплата?</summary>
+            <p>Так, доступна для Нової Пошти. Комісія перевізника оплачується отримувачем.</p>
+        </details>
+        <details>
+            <summary>Що робити, якщо посилка пошкоджена?</summary>
+            <p>Складіть акт у відділенні та повідомте нас. Ми замінимо товар або повернемо кошти.</p>
+        </details>
+    </div>
+</section>
+
+<section class="delivery-cta fade-in-up">
+    <div>
+        <h2>Готові оформити замовлення?</h2>
+        <p>Оберіть товари та отримайте їх вже на наступний день!</p>
+    </div>
+    <a href="{% url 'shop:catalog' %}" class="delivery-btn is-primary">
+        До каталогу <i class="fas fa-arrow-right"></i>
+    </a>
+</section>
+
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}SportShop - Спортивне харчування{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="home-hero fade-in-up">
+    <div class="home-hero-grid">
+        <div class="home-hero-copy">
+            <div class="home-chip">
+                <i class="fas fa-bolt"></i>
+                <span>Спеціальні пропозиції</span>
+            </div>
+
+            <h1 class="home-title">
+                SportShop
+                <span>Для активного життя</span>
+            </h1>
+
+            <p class="home-subtitle">
+                Професійна якість, доступні ціни, швидка доставка. Все, що потрібно для здорового способу життя та активного спорту.
+            </p>
+
+            <div class="home-metrics">
+                <div class="home-metric">
+                    <span class="home-metric-dot"></span>
+                    Оригінальні товари
+                </div>
+                <div class="home-metric">
+                    <span class="home-metric-dot"></span>
+                    Швидка доставка
+                </div>
+                <div class="home-metric">
+                    <span class="home-metric-dot"></span>
+                    Безпечна оплата
+                </div>
+            </div>
+
+            <div class="home-hero-actions">
+                <a href="{% url 'shop:catalog' %}" class="home-cta home-cta-primary">
+                    <i class="fas fa-shopping-cart"></i> Каталог товарів
+                </a>
+                <a href="#featured" class="home-cta home-cta-ghost">
+                    <i class="fas fa-arrow-down"></i> Популярні товари
+                </a>
+            </div>
+        </div>
+
+        <div class="home-hero-visual">
+            <div class="hero-glass">
+                <div class="hero-glass-top">
+                    <i class="fas fa-dumbbell"></i>
+                    <div>
+                        <p>Сильнішим щодня</p>
+                        <span>Готові комплекси для тренувань</span>
+                    </div>
+                </div>
+                <div class="hero-glass-stats">
+                    <div class="hero-stat">
+                        <span>120+</span>
+                        <small>брендів</small>
+                    </div>
+                    <div class="hero-stat">
+                        <span>24/7</span>
+                        <small>підтримка</small>
+                    </div>
+                    <div class="hero-stat">
+                        <span>48h</span>
+                        <small>доставка</small>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-tags">
+                <span>Протеїн</span>
+                <span>Вітаміни</span>
+                <span>Енергія</span>
+                <span>Відновлення</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="home-features fade-in-up">
+    <div class="home-feature-card">
+        <div class="home-feature-icon">
+            <i class="fas fa-certificate"></i>
+        </div>
+        <h3>Оригінальна якість</h3>
+        <p>Тільки сертифіковані товари від перевірених виробників</p>
+    </div>
+    <div class="home-feature-card">
+        <div class="home-feature-icon is-blue">
+            <i class="fas fa-truck"></i>
+        </div>
+        <h3>Швидка доставка</h3>
+        <p>Відправка за день, доставка по всій країні</p>
+    </div>
+    <div class="home-feature-card">
+        <div class="home-feature-icon is-orange">
+            <i class="fas fa-tag"></i>
+        </div>
+        <h3>Найкращі ціни</h3>
+        <p>Гарантія найнижчої ціни та постійні акції</p>
+    </div>
+</section>
+
+<!-- Featured Products Section -->
+<section id="featured" class="home-featured fade-in-up">
+    <div class="home-section-head">
+        <span class="home-pill"><i class="fas fa-star"></i> Топ товарів</span>
+        <h2>Популярні товари</h2>
+        <p>Найпопулярніші товари, обрані нашими постійними клієнтами</p>
+    </div>
+    
+    {% if featured_products %}
+        <div class="home-product-grid">
+            {% for product in featured_products %}
+                <article class="home-product-card">
+                    <div class="home-product-media">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                        {% else %}
+                            <div class="home-product-placeholder">
+                                <i class="fas fa-box"></i>
+                            </div>
+                        {% endif %}
+                        <span class="home-product-badge"><i class="fas fa-star"></i> Популярно</span>
+                    </div>
+                    <div class="home-product-body">
+                        {% if product.category %}
+                            <span class="home-product-category">{{ product.category.name }}</span>
+                        {% endif %}
+                        <h3>{{ product.name }}</h3>
+                        {% if product.description %}
+                            <p class="line-clamp-2">{{ product.description|truncatewords:15 }}</p>
+                        {% endif %}
+                        <div class="home-product-footer">
+                            <span class="home-product-price">₴{{ product.price }}</span>
+                            <a href="{% url 'shop:product_detail' product.id %}" class="home-product-link">
+                                Деталі <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+
+        <div class="home-center">
+            <a href="{% url 'shop:catalog' %}" class="home-cta home-cta-primary">
+                Переглянути весь каталог <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    {% else %}
+        <div class="home-empty">
+            <div class="home-empty-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <h3>Каталог товарів ще порожній</h3>
+            <p>Поверніться пізніше, щоб побачити наші пропозиції</p>
+        </div>
+    {% endif %}
+</section>
+
+<!-- Newsletter Section -->
+<section class="home-newsletter fade-in-up">
+    <div class="home-newsletter-inner">
+        <h2>Бути в курсі акцій</h2>
+        <p>Підпишіться на розсилку і отримуйте інформацію про нові товари та спеціальні пропозиції</p>
+        <div class="home-newsletter-form">
+            <input type="email" placeholder="Ваша електронна адреса...">
+            <button class="home-cta home-cta-primary">Підписатися</button>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="home-final-cta fade-in-up">
+    <div class="home-final-inner">
+        <h2>Готові до покупок?</h2>
+        <p>Перейдіть до каталогу та виберіть потрібні вам товари для активного способу життя</p>
+        <a href="{% url 'shop:catalog' %}" class="home-cta home-cta-primary">
+            <i class="fas fa-shopping-bag"></i> Почнемо покупки!
+        </a>
+    </div>
+</section>
+{% endblock %}

@@ -1,9 +1,10 @@
 {% extends 'shop/base.html' %}
+{% load static %}
 
 {% block title %}Мій профіль - SportShop{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto">
+<div class="profile-page max-w-2xl mx-auto">
     <h1 class="text-3xl font-bold mb-8">👤 Мій профіль</h1>
     
     {% if success %}
@@ -141,25 +142,8 @@
     <!-- Navigation Links -->
     <div class="mt-8 flex gap-4 justify-center">
         <a href="{% url 'shop:orders' %}" class="text-blue-600 hover:underline">← Мої замовлення</a>
-        <a href="{% url 'shop:index' %}" class="text-blue-600 hover:underline">На головну →</a>
+        <a href="{% url 'shop:home' %}" class="text-blue-600 hover:underline">На головну →</a>
     </div>
 </div>
 
-<style>
-    input[type="text"],
-    input[type="email"] {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        font-size: 1rem;
-    }
-    
-    input[type="text"]:focus,
-    input[type="email"]:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-</style>
 {% endblock %}

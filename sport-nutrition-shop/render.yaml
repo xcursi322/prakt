@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: sport-nutrition-shop
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate
+    startCommand: gunicorn sportshop.wsgi:application
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://*.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sport-nutrition-db
+          property: connectionString
+
+databases:
+  - name: sport-nutrition-db
+    databaseName: sport_nutrition_shop
+    user: sport_nutrition_shop

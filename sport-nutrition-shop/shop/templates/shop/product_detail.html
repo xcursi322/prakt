@@ -1,19 +1,284 @@
 {% extends 'shop/base.html' %}
-{% block title %}{{ product.name }}{% endblock %}
+{% block title %}{{ product.name }} - SportShop{% endblock %}
 
 {% block content %}
-<div class="max-w-xl mx-auto bg-white p-6 rounded-2xl shadow">
-    <h2 class="text-2xl font-bold mb-2">{{ product.name }}</h2>
-    <p class="text-lg text-gray-600 mb-4">{{ product.price }} ₴</p>
+<!-- Back Link -->
+<a href="{% url 'shop:catalog' %}" class="back-link text-blue-600 font-semibold mb-6 inline-flex items-center gap-2 hover:gap-3">
+    <i class="fas fa-chevron-left"></i> Повернутись до каталогу
+</a>
 
-    <p class="mb-6 text-gray-700">{{ product.description }}</p>
+<!-- Product Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 fade-in-up">
+    <!-- Product Image -->
+    <div class="flex items-center justify-center">
+        <div class="w-full max-w-md bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl overflow-hidden shadow-lg">
+            {% if product.image %}
+                <img src="{{ product.image.url }}"
+                     alt="{{ product.name }}"
+                     class="w-full h-auto object-cover hover:scale-105 transition duration-300"
+                     loading="lazy">
+            {% else %}
+                <div class="w-full h-96 flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                    <i class="fas fa-box text-gray-400 text-6xl"></i>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 
-    <form method="post" action="{% url 'shop:add_to_cart' product.id %}">
-        {% csrf_token %}
-        <button type="submit"
-            class="w-full bg-black text-white py-3 rounded-xl hover:bg-gray-800 transition">
-            Додати в кошик
-        </button>
-    </form>
+    <!-- Product Info -->
+    <div class="flex flex-col justify-center fade-in-up">
+        <!-- Category Badge -->
+        {% if product.category %}
+            <div class="inline-block w-fit mb-4">
+                <span class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full text-sm font-semibold text-blue-700">
+                    <i class="fas fa-tag"></i> {{ product.category.name }}
+                </span>
+            </div>
+        {% endif %}
+
+        <!-- Title -->
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+            {{ product.name }}
+        </h1>
+
+        <!-- Rating (Optional) -->
+        <div class="flex items-center gap-3 mb-6">
+            <div class="flex gap-1">
+                {% for i in "12345" %}
+                    <i class="fas fa-star text-yellow-400 text-lg"></i>
+                {% endfor %}
+            </div>
+            <span class="text-gray-600 font-medium">(42 відгуки)</span>
+        </div>
+
+        <!-- Price Section -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 sm:p-8 mb-8 border-2 border-blue-200">
+            <p class="text-gray-600 text-sm mb-2">Ціна:</p>
+            <div class="flex items-baseline gap-4">
+                <span class="product-price text-4xl sm:text-5xl font-bold text-blue-600">
+                    {{ product.price }} ₴
+                </span>
+                <span class="text-gray-400 line-through text-lg">
+                    {{ product.price|add:"50" }} ₴
+                </span>
+            </div>
+            <p class="text-green-600 font-bold mt-3 flex items-center gap-2">
+                <i class="fas fa-check-circle"></i> Вільна доставка
+            </p>
+        </div>
+
+        <!-- Description -->
+        <div class="mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-3">Опис</h2>
+            <p class="text-gray-700 leading-relaxed text-lg">
+                {{ product.description }}
+            </p>
+        </div>
+
+        <!-- Features (Optional) -->
+        <div class="mb-8 bg-gray-50 rounded-xl p-6">
+            <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-list-check text-blue-600"></i> Особливості
+            </h3>
+            <ul class="space-y-3">
+                <li class="flex items-center gap-3 text-gray-700">
+                    <i class="fas fa-check text-green-500 font-bold"></i>
+                    <span>Висока якість та чистота</span>
+                </li>
+                <li class="flex items-center gap-3 text-gray-700">
+                    <i class="fas fa-check text-green-500 font-bold"></i>
+                    <span>Сертифіковано та протестовано</span>
+                </li>
+                <li class="flex items-center gap-3 text-gray-700">
+                    <i class="fas fa-check text-green-500 font-bold"></i>
+                    <span>Відпускається без рецепту</span>
+                </li>
+                <li class="flex items-center gap-3 text-gray-700">
+                    <i class="fas fa-check text-green-500 font-bold"></i>
+                    <span>Гарантія якості</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Add to Cart Form -->
+        <form method="post" action="{% url 'shop:add_to_cart' product.id %}" class="space-y-4">
+            {% csrf_token %}
+            
+            <!-- Quantity Selector -->
+            <div class="flex items-center gap-4">
+                <label class="font-semibold text-gray-900">Кількість:</label>
+                <div class="flex items-center border-2 border-gray-300 rounded-lg">
+                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold">−</button>
+                    <input type="number" name="quantity" value="1" min="1" max="100" 
+                           class="w-16 text-center font-bold border-0 focus:ring-0" data-quantity-input>
+                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold">+</button>
+                </div>
+            </div>
+
+            <!-- Add to Cart Button -->
+                <button type="submit" class="btn btn-primary w-full py-4 text-lg font-bold flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl">
+                <i class="fas fa-shopping-cart"></i> Додати в кошик
+            </button>
+        </form>
+
+        <!-- Additional Info -->
+        <div class="mt-8 pt-8 border-t-2 border-gray-200">
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <i class="fas fa-truck text-2xl text-blue-600 mb-2"></i>
+                    <p class="text-sm font-semibold text-gray-900">Швидка доставка</p>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4">
+                    <i class="fas fa-shield-alt text-2xl text-green-600 mb-2"></i>
+                    <p class="text-sm font-semibold text-gray-900">Гарантія якості</p>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-4">
+                    <i class="fas fa-undo text-2xl text-orange-600 mb-2"></i>
+                    <p class="text-sm font-semibold text-gray-900">Повернення 30 днів</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Reviews Section -->
+<div class="mt-16 pt-16 border-t-2 border-gray-200 fade-in-up">
+    <div class="flex items-center justify-between mb-8">
+        <h2 class="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-comments text-blue-600"></i> Відгуки та рейтинги
+        </h2>
+        {% if customer_id %}
+            <a href="{% url 'shop:add_review' product.id %}" class="btn btn-primary">
+                <i class="fas fa-pen"></i> Залишити відзив
+            </a>
+        {% else %}
+            <a href="{% url 'shop:login' %}" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Увійти для відзиву
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- Reviews List -->
+    <div class="space-y-6">
+        {% if product.reviews.all %}
+            {% for review in product.reviews.all %}
+                <div class="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition">
+                    <!-- Review Header -->
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="font-bold text-lg text-gray-900">{{ review.title }}</h3>
+                                {% if review.is_verified_purchase %}
+                                    <span class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold flex items-center gap-1">
+                                        <i class="fas fa-check-circle"></i> Перевірена покупка
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                <strong>{{ review.customer.first_name }} {{ review.customer.last_name }}</strong>
+                                <span class="mx-2">•</span>
+                                <time>{{ review.created_at|date:"d.m.Y" }}</time>
+                            </p>
+                        </div>
+                        {% if customer_id|stringformat:"s" == review.customer.id|stringformat:"s" %}
+                            <a href="{% url 'shop:delete_review' review.id %}" class="text-red-500 hover:text-red-700 font-semibold text-sm">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Rating Stars -->
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="flex gap-0.5">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= review.rating %}
+                                    <i class="fas fa-star text-yellow-400 text-lg"></i>
+                                {% else %}
+                                    <i class="fas fa-star text-gray-300 text-lg"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="font-bold text-gray-900 ml-2">{{ review.rating }}/5</span>
+                    </div>
+
+                    <!-- Review Text -->
+                    <p class="text-gray-700 mb-6 leading-relaxed">{{ review.text }}</p>
+
+                    <!-- Admin Reply -->
+                    {% if review.replies.all %}
+                        <div class="bg-blue-50 rounded-lg p-4 mb-4 border-l-4 border-blue-600">
+                            {% for reply in review.replies.all %}
+                                <div class="mb-3">
+                                    <p class="font-bold text-blue-900 flex items-center gap-2">
+                                        <i class="fas fa-reply"></i> Відповідь адміністратора
+                                    </p>
+                                    <p class="text-blue-800 mt-2">{{ reply.text }}</p>
+                                    <p class="text-xs text-blue-600 mt-2">{{ reply.created_at|date:"d.m.Y H:i" }}</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Admin Reply Form -->
+                    {% if is_admin %}
+                        {% if not review.replies.all %}
+                            <a href="{% url 'shop:add_reply' review.id %}" class="text-blue-600 hover:text-blue-800 font-semibold text-sm inline-flex items-center gap-1">
+                                <i class="fas fa-reply"></i> Відповісти на відзив
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-12 bg-gray-50 rounded-xl">
+                <i class="fas fa-comments text-gray-300 text-4xl mb-3"></i>
+                <p class="text-gray-600 text-lg">Немає відгуків про цей товар</p>
+                <p class="text-gray-500">Будьте першим, хто залишить відзив!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+<div class="mt-16 pt-16 border-t-2 border-gray-200 fade-in-up">
+    <h2 class="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-2">
+        <i class="fas fa-heart text-blue-600"></i> Рекомендуємо також
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {% for p in related_products|slice:":4" %}
+            <a href="{% url 'shop:product_detail' p.id %}" class="product-card group">
+                <div class="product-image-wrapper">
+                    {% if p.image %}
+                        <img src="{{ p.image.url }}" alt="{{ p.name }}" class="product-image">
+                    {% else %}
+                        <div class="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <i class="fas fa-box text-gray-400 text-2xl"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">{{ p.name }}</h3>
+                    <div class="product-footer">
+                        <div class="product-price">{{ p.price }} ₴</div>
+                    </div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    // Quantity button handlers
+    document.querySelectorAll('input[data-quantity-input]').forEach(input => {
+        const buttons = input.parentElement.querySelectorAll('button');
+        if (buttons.length >= 2) {
+            buttons[0].addEventListener('click', (e) => {
+                e.preventDefault();
+                if (input.value > 1) input.value--;
+            });
+            buttons[1].addEventListener('click', (e) => {
+                e.preventDefault();
+                input.value++;
+            });
+        }
+    });
+</script>
 {% endblock %}

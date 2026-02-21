@@ -3,82 +3,91 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Магазин{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SportShop - Спортивне харчування{% endblock %}</title>
 
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            right: 0;
-            margin-top: 0.5rem;
-            width: 192px;
-            background-color: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.375rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            z-index: 50;
-        }
-        
-        .dropdown-menu.show {
-            display: block;
-        }
-        
-        .dropdown-toggle:hover + .dropdown-menu,
-        .dropdown-menu:hover {
-            display: block;
-        }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'shop/style.css' %}">
+
 </head>
 
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 text-gray-900">
 
 <!-- HEADER -->
-<header class="bg-white border-b">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <a href="{% url 'shop:index' %}" class="text-xl font-bold">
-            SportShop
+<header class="bg-white header-shadow sticky top-0 z-30 transition-shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+        <!-- Logo -->
+        <a href="{% url 'shop:home' %}" class="flex items-center gap-3 group">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center text-white font-bold text-lg group-hover:shadow-lg transition-shadow">
+                <i class="fas fa-dumbbell"></i>
+            </div>
+            <span class="text-xl font-bold text-gray-900 hidden sm:inline group-hover:text-blue-600 transition">SportShop</span>
         </a>
 
-        <nav class="flex gap-6 text-sm items-center">
-            <a href="{% url 'shop:index' %}" class="hover:text-blue-600">Каталог</a>
-            <a href="#" class="hover:text-blue-600">Доставка</a>
+        <!-- Navigation -->
+        <nav class="hidden md:flex gap-8 text-sm font-medium">
+            <a href="{% url 'shop:home' %}" class="text-gray-700 hover:text-blue-600 transition relative group">
+                <span>Головна</span>
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300"></span>
+            </a>
+            <a href="{% url 'shop:catalog' %}" class="text-gray-700 hover:text-blue-600 transition relative group">
+                <span>Каталог</span>
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300"></span>
+            </a>
+            <a href="{% url 'shop:delivery' %}" class="text-gray-700 hover:text-blue-600 transition relative group">
+                <span>FAQ/Доставка</span>
+                <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300"></span>
+            </a>
         </nav>
 
-        <div class="flex gap-4 items-center">
-            <a href="{% url 'shop:cart' %}" class="font-medium">
-                🛒 Корзина
+        <!-- Right Actions -->
+        <div class="flex gap-2 sm:gap-4 items-center">
+            <!-- Cart -->
+            <a href="{% url 'shop:cart' %}" class="relative group px-3 py-2 rounded-lg hover:bg-gray-100 transition" data-cart-icon>
+                <i class="fas fa-shopping-cart text-lg text-gray-700 group-hover:text-blue-600"></i>
+                <span data-cart-count class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ cart_count|default:0 }}</span>
             </a>
+
+            <!-- User Menu -->
             {% if request.session.customer_id %}
                 <div class="relative">
-                    <button class="dropdown-toggle text-lg hover:text-blue-600 flex items-center gap-2" title="Профіль">
-                        <i class="fas fa-user"></i>
-                        <span class="text-sm">{{ request.session.customer_username }}</span>
+                    <button class="dropdown-toggle flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-gray-700 hover:text-blue-600" title="Профіль">
+                        <i class="fas fa-user text-lg"></i>
+                        <span class="hidden sm:inline text-sm font-medium">{{ request.session.customer_username }}</span>
                     </button>
                     <div class="dropdown-menu">
-                        <a href="{% url 'shop:profile' %}" class="block px-4 py-2 hover:bg-gray-100">👤 Профіль</a>
-                        <a href="{% url 'shop:orders' %}" class="block px-4 py-2 hover:bg-gray-100">📦 Мої замовлення</a>
-                        <a href="{% url 'shop:logout' %}" class="block px-4 py-2 hover:bg-gray-100 border-t">Вихід</a>
+                        <a href="{% url 'shop:profile' %}" class="">
+                            <i class="fas fa-id-card text-blue-600"></i> Профіль
+                        </a>
+                        <a href="{% url 'shop:orders' %}">
+                            <i class="fas fa-shopping-bag text-blue-600"></i> Замовлення
+                        </a>
+                        <a href="{% url 'shop:logout' %}" class="border-t">
+                            <i class="fas fa-sign-out-alt text-red-600"></i> Вихід
+                        </a>
                     </div>
                 </div>
             {% else %}
                 <div class="relative">
-                    <a href="#" class="dropdown-toggle text-lg hover:text-blue-600" title="Вход/Регистрация">
-                        <i class="fas fa-user"></i>
-                    </a>
+                    <button class="dropdown-toggle px-3 py-2 rounded-lg hover:bg-gray-100 transition text-gray-700 hover:text-blue-600" title="Вхід">
+                        <i class="fas fa-user text-lg"></i>
+                    </button>
                     <div class="dropdown-menu">
-                        <a href="{% url 'shop:login' %}" class="block px-4 py-2 hover:bg-gray-100">Вхід</a>
-                        <a href="{% url 'shop:register' %}" class="block px-4 py-2 hover:bg-gray-100 border-t">Реєстрація</a>
+                        <a href="{% url 'shop:login' %}">
+                            <i class="fas fa-sign-in-alt text-blue-600"></i> Вхід
+                        </a>
+                        <a href="{% url 'shop:register' %}" class="border-t">
+                            <i class="fas fa-user-plus text-green-600"></i> Реєстрація
+                        </a>
                     </div>
                 </div>
             {% endif %}
@@ -87,123 +96,189 @@
 </header>
 
 <!-- CONTENT -->
-<main class="max-w-7xl mx-auto px-6 py-8">
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div data-notifications></div>
     {% block content %}{% endblock %}
 </main>
 
 <!-- FOOTER -->
-<footer class="bg-gray-900 text-gray-300 mt-12">
-    <div class="max-w-7xl mx-auto px-6 py-12">
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-            <!-- Про магазин -->
-            <div>
-                <h3 class="font-bold text-white mb-4">Про магазин</h3>
+<footer class="bg-gradient-to-b from-gray-900 to-gray-950 text-gray-300 mt-16 border-t border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <!-- Top Section -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12 pb-12 border-b border-gray-800">
+            <!-- Company Info -->
+            <div class="fade-in-up">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold">
+                        <i class="fas fa-dumbbell text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-white text-lg">SportShop</h3>
+                </div>
+                <p class="text-sm text-gray-400 leading-relaxed">
+                    Ваш надійний партнер у світі спортивного харчування та здорового способу життя.
+                </p>
+            </div>
+
+            <!-- Links 1 -->
+            <div class="fade-in-up">
+                <h4 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fas fa-link text-blue-500"></i> Про магазин
+                </h4>
                 <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="hover:text-white transition">Про нас</a></li>
-                    <li><a href="#" class="hover:text-white transition">Доставка</a></li>
-                    <li><a href="#" class="hover:text-white transition">Повернення</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-blue-400 transition flex items-center gap-1">
+                        <i class="fas fa-chevron-right text-xs"></i> Про нас
+                    </a></li>
+                    <li><a href="{% url 'shop:delivery' %}" class="text-gray-400 hover:text-blue-400 transition flex items-center gap-1">
+                        <i class="fas fa-chevron-right text-xs"></i> Доставка
+                    </a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-blue-400 transition flex items-center gap-1">
+                        <i class="fas fa-chevron-right text-xs"></i> Повернення
+                    </a></li>
                 </ul>
             </div>
 
-            <!-- Допомога -->
-            <div>
-                <h3 class="font-bold text-white mb-4">Допомога</h3>
+            <!-- Links 2 -->
+            <div class="fade-in-up">
+                <h4 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fas fa-headset text-blue-500"></i> Допомога
+                </h4>
                 <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="hover:text-white transition">Контакти</a></li>
-                    <li><a href="#" class="hover:text-white transition">FAQ</a></li>
-                    <li><a href="#" class="hover:text-white transition">Умови використання</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-blue-400 transition flex items-center gap-1">
+                        <i class="fas fa-chevron-right text-xs"></i> Контакти
+                    </a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-blue-400 transition flex items-center gap-1">
+                        <i class="fas fa-chevron-right text-xs"></i> Питання-Відповіді
+                    </a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-blue-400 transition flex items-center gap-1">
+                        <i class="fas fa-chevron-right text-xs"></i> Умови
+                    </a></li>
                 </ul>
             </div>
 
-            <!-- Контакти -->
-            <div>
-                <h3 class="font-bold text-white mb-4">Контакти</h3>
-                <ul class="space-y-2 text-sm">
-                    <li>📞 +38 (095) XXX-XX-XX</li>
-                    <li>✉️ info@sportshop.ua</li>
-                    <li>📍 м. Київ, вул. Спортивна</li>
+            <!-- Contacts & Social -->
+            <div class="fade-in-up">
+                <h4 class="font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fas fa-share-nodes text-blue-500"></i> Контакти
+                </h4>
+                <ul class="space-y-2 text-sm mb-6">
+                    <li class="flex items-center gap-2 text-gray-400">
+                        <i class="fas fa-phone text-blue-500"></i> +38 (095) 123-45-67
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-400">
+                        <i class="fas fa-envelope text-blue-500"></i> info@sportshop.ua
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-400">
+                        <i class="fas fa-map-marker-alt text-blue-500"></i> м. Київ
+                    </li>
                 </ul>
-            </div>
-
-            <!-- Соцмережі -->
-            <div>
-                <h3 class="font-bold text-white mb-4">Слідкуйте за нами</h3>
-                <div class="flex gap-4">
-                    <a href="#" class="text-xl hover:text-blue-400 transition" title="Facebook">
-                        <i class="fab fa-facebook"></i>
+                <div class="flex gap-3">
+                    <a href="#" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-blue-600 flex items-center justify-center transition transform hover:scale-110" title="Facebook">
+                        <i class="fab fa-facebook-f text-sm"></i>
                     </a>
-                    <a href="#" class="text-xl hover:text-pink-400 transition" title="Instagram">
-                        <i class="fab fa-instagram"></i>
+                    <a href="#" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-pink-600 flex items-center justify-center transition transform hover:scale-110" title="Instagram">
+                        <i class="fab fa-instagram text-sm"></i>
                     </a>
-                    <a href="#" class="text-xl hover:text-blue-300 transition" title="Twitter">
-                        <i class="fab fa-twitter"></i>
+                    <a href="#" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-blue-500 flex items-center justify-center transition transform hover:scale-110" title="Twitter">
+                        <i class="fab fa-twitter text-sm"></i>
                     </a>
-                    <a href="#" class="text-xl hover:text-red-500 transition" title="YouTube">
-                        <i class="fab fa-youtube"></i>
+                    <a href="#" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-red-600 flex items-center justify-center transition transform hover:scale-110" title="YouTube">
+                        <i class="fab fa-youtube text-sm"></i>
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- Разделитель -->
-        <div class="border-t border-gray-700 pt-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center">
-                <p class="text-sm text-gray-400">© 2026 SportShop. Всі права захищені.</p>
-                <div class="flex gap-6 text-sm text-gray-400 mt-4 sm:mt-0">
-                    <a href="#" class="hover:text-white transition">Політика приватності</a>
-                    <a href="#" class="hover:text-white transition">Умови обслуговування</a>
-                </div>
+        <!-- Bottom Section -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p class="text-sm text-gray-500">© 2026 SportShop. Всі права захищені.</p>
+            <div class="flex gap-6 text-sm text-gray-500">
+                <a href="#" class="hover:text-blue-400 transition">Політика приватності</a>
+                <a href="#" class="hover:text-blue-400 transition">Умови обслуговування</a>
             </div>
         </div>
     </div>
 </footer>
 
-{% block extra_js %}{% endblock %}
+<!-- Main Scripts -->
+<script src="{% static 'shop/filters.js' %}"></script>
 
 <script>
-    // Dropdown menu handler
+    // Enhanced dropdown menu handler with smooth animations
     document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
         const menu = toggle.nextElementSibling;
         
-        toggle.addEventListener('click', (e) => {
-            e.preventDefault();
-            menu.classList.toggle('show');
-            // Close other dropdowns
-            document.querySelectorAll('.dropdown-menu.show').forEach(m => {
-                if (m !== menu) m.classList.remove('show');
+        if (menu && menu.classList.contains('dropdown-menu')) {
+            toggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                const isOpen = menu.classList.contains('show');
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.dropdown-menu.show').forEach(m => {
+                    if (m !== menu) m.classList.remove('show');
+                });
+                
+                // Toggle current menu
+                menu.classList.toggle('show');
             });
-        });
-        
-        toggle.addEventListener('mouseenter', () => {
-            menu.classList.add('show');
-        });
-        
-        toggle.addEventListener('mouseleave', () => {
-            setTimeout(() => {
-                if (!menu.matches(':hover')) {
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown-toggle') && !e.target.closest('.dropdown-menu')) {
                     menu.classList.remove('show');
                 }
-            }, 150);
-        });
-        
-        menu.addEventListener('mouseenter', () => {
-            menu.classList.add('show');
-        });
-        
-        menu.addEventListener('mouseleave', () => {
-            menu.classList.remove('show');
-        });
-    });
-    
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.dropdown-toggle') && !e.target.closest('.dropdown-menu')) {
-            document.querySelectorAll('.dropdown-menu').forEach(m => {
-                m.classList.remove('show');
+            });
+
+            // Keyboard navigation
+            toggle.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    menu.classList.add('show');
+                    const firstLink = menu.querySelector('a');
+                    if (firstLink) firstLink.focus();
+                }
+                if (e.key === 'Escape') {
+                    menu.classList.remove('show');
+                    toggle.focus();
+                }
             });
         }
     });
+
+    // Smooth scroll behavior
+    if (!('scrollBehavior' in document.documentElement.style)) {
+        const links = document.querySelectorAll('a[href^="#"]');
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                const href = link.getAttribute('href');
+                if (href !== '#') {
+                    const target = document.querySelector(href);
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            });
+        });
+    }
+
+    // Page load animation
+    window.addEventListener('load', () => {
+        document.body.style.opacity = '1';
+    });
+
+    // Add loading state on form submissions
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', () => {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Завантаження...';
+            }
+        });
+    });
 </script>
+
+{% block extra_js %}{% endblock %}
 
 </body>
 </html>
