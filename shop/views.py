@@ -1,6 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import FileResponse, JsonResponse
 from django.template.loader import render_to_string
+from django.urls import reverse
+from django.db import transaction
+from django.db.models import F
  
  
 from .models import Product, OrderItem, Category, Order, Customer, Review, ReviewReply
@@ -9,6 +12,12 @@ from .forms import CheckoutForm, RegistrationForm, LoginForm, ProfileForm, Revie
 
 def _is_ajax_request(request):
     return request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
+
+def _get_delivery_cost(subtotal, delivery_method):
+    if delivery_method == 'courier_kyiv':
+        return 0 if subtotal >= 2000 else 120
+    return 0 if subtotal >= 1500 else 70
 
 
 def _build_cart_update_payload(cart, product_id):
@@ -87,9 +96,13 @@ def catalog(request):
         products_html = render_to_string('shop/partials/catalog_products_grid.html', {
             'products': products,
         }, request=request)
+        hero_html = render_to_string('shop/partials/catalog_hero.html', {
+            'selected_category': selected_category,
+        }, request=request)
         return JsonResponse({
             'success': True,
             'products_html': products_html,
+            'hero_html': hero_html,
             'products_count': len(products),
         })
 
@@ -147,8 +160,34 @@ def add_to_cart(request, product_id):
     if quantity < 1:
         quantity = 1
 
+    product = get_object_or_404(Product, id=product_id)
+
     cart = request.session.get('cart', {})  # получаем корзину из сессии
-    cart[str(product_id)] = cart.get(str(product_id), 0) + quantity
+    existing_quantity = int(cart.get(str(product_id), 0) or 0)
+    if product.stock_quantity <= 0:
+        if _is_ajax_request(request):
+            return JsonResponse({
+                'success': False,
+                'message': 'Товар закінчився',
+                'cart_count': sum(int(qty or 0) for qty in cart.values()),
+            }, status=400)
+        next_url = request.META.get('HTTP_REFERER')
+        if next_url:
+            return redirect(next_url)
+        return redirect('shop:catalog')
+
+    allowed_to_add = max(product.stock_quantity - existing_quantity, 0)
+    if allowed_to_add <= 0:
+        if _is_ajax_request(request):
+            return JsonResponse({
+                'success': False,
+                'message': 'В кошику вже максимальна кількість для цього товару',
+                'cart_count': sum(int(qty or 0) for qty in cart.values()),
+            }, status=400)
+        return redirect('shop:cart')
+
+    actual_add = min(quantity, allowed_to_add)
+    cart[str(product_id)] = existing_quantity + actual_add
     request.session['cart'] = cart
     request.session.modified = True  # обязательно для сохранения изменений
 
@@ -159,7 +198,10 @@ def add_to_cart(request, product_id):
                 total_count += int(qty)
             except (TypeError, ValueError):
                 continue
-        return JsonResponse({'cart_count': total_count})
+        payload = {'success': True, 'cart_count': total_count}
+        if actual_add < quantity:
+            payload['message'] = 'Додано тільки доступну кількість товару'
+        return JsonResponse(payload)
 
     next_url = request.META.get('HTTP_REFERER')
     if next_url:
@@ -211,42 +253,117 @@ def checkout(request):
             'subtotal': subtotal
         })
 
+    customer = None
+    customer_id = request.session.get('customer_id')
+    if customer_id:
+        try:
+            customer = Customer.objects.get(id=customer_id)
+        except Customer.DoesNotExist:
+            customer = None
+
     if request.method == 'POST':
         form = CheckoutForm(request.POST)
+        selected_delivery_method = request.POST.get('delivery_method') or 'np_branch'
+        shipping_cost = _get_delivery_cost(total, selected_delivery_method)
+        grand_total = total + shipping_cost
         if form.is_valid():
-            # создаём заказ
-            order = form.save(commit=False)
-            order.total = total
-            # привязываем заказ к текущему клиенту, если он авторизован
-            customer_id = request.session.get('customer_id')
-            if customer_id:
-                try:
-                    customer = Customer.objects.get(id=customer_id)
-                    order.customer = customer
-                except Customer.DoesNotExist:
-                    pass
-            order.save()
+            with transaction.atomic():
+                stock_products = {
+                    product.id: product
+                    for product in Product.objects.select_for_update().filter(id__in=cart.keys())
+                }
 
-            # переносим товары из корзины в OrderItem
-            for item in cart_items:
-                OrderItem.objects.create(
-                    order=order,
-                    product=item['product'],
-                    quantity=item['quantity'],
-                    price=item['product'].price
-                )
+                out_of_stock_items = []
+                for item in cart_items:
+                    fresh_product = stock_products.get(item['product'].id)
+                    requested_quantity = int(item['quantity'] or 0)
+                    if not fresh_product or requested_quantity > fresh_product.stock_quantity:
+                        out_of_stock_items.append(item['product'].name)
 
-            # очищаем корзину
-            request.session['cart'] = {}
-            request.session.modified = True
+                if out_of_stock_items:
+                    form.add_error(
+                        None,
+                        'Недостатньо товару в наявності: ' + ', '.join(out_of_stock_items)
+                    )
+                else:
+                    order = form.save(commit=False)
+                    order.total = grand_total
 
-            return render(request, 'shop/checkout_success.html', {'order': order})
+                    if customer:
+                        order.customer = customer
+
+                        order_first_name = (order.first_name or '').strip()
+                        order_last_name = (order.last_name or '').strip()
+                        order_address = (order.address or '').strip()
+                        order_city = (order.city or '').strip()
+                        order_postal_code = (order.postal_code or '').strip()
+
+                        customer_updates = []
+                        if not (customer.first_name or '').strip() and order_first_name:
+                            customer.first_name = order_first_name
+                            customer_updates.append('first_name')
+
+                        if not (customer.last_name or '').strip() and order_last_name:
+                            customer.last_name = order_last_name
+                            customer_updates.append('last_name')
+
+                        if not (customer.address or '').strip() and order_address:
+                            customer.address = order_address
+                            customer_updates.append('address')
+
+                        if not (customer.city or '').strip() and order_city:
+                            customer.city = order_city
+                            customer_updates.append('city')
+
+                        if not (customer.postal_code or '').strip() and order_postal_code:
+                            customer.postal_code = order_postal_code
+                            customer_updates.append('postal_code')
+
+                        if customer_updates:
+                            customer.save(update_fields=customer_updates + ['updated_at'])
+
+                    order.save()
+
+                    for item in cart_items:
+                        product = stock_products[item['product'].id]
+                        quantity = int(item['quantity'] or 0)
+                        OrderItem.objects.create(
+                            order=order,
+                            product=product,
+                            quantity=quantity,
+                            price=product.price
+                        )
+                        Product.objects.filter(id=product.id).update(
+                            stock_quantity=F('stock_quantity') - quantity
+                        )
+
+                    request.session['cart'] = {}
+                    request.session.modified = True
+
+                    return render(request, 'shop/checkout_success.html', {'order': order})
     else:
-        form = CheckoutForm()
+        selected_delivery_method = 'np_branch'
+        shipping_cost = _get_delivery_cost(total, selected_delivery_method)
+        grand_total = total + shipping_cost
+        form_initial = {}
+        if customer:
+            form_initial = {
+                'first_name': customer.first_name or '',
+                'last_name': customer.last_name or '',
+                'email': customer.email or '',
+                'phone': customer.phone or '',
+                'address': customer.address or '',
+                'city': customer.city or '',
+                'postal_code': customer.postal_code or '',
+                'delivery_method': selected_delivery_method,
+            }
+        form = CheckoutForm(initial=form_initial)
 
     return render(request, 'shop/checkout_form.html', {
         'form': form,
-        'total': total
+        'total': total,
+        'shipping_cost': shipping_cost,
+        'grand_total': grand_total,
     })
 
 # Увеличение количества товара в корзине
@@ -255,7 +372,17 @@ def increase_quantity(request, product_id):
     pid = str(product_id)
 
     if pid in cart:
-        cart[pid] += 1
+        product = get_object_or_404(Product, id=product_id)
+        current_qty = int(cart[pid] or 0)
+        if current_qty < product.stock_quantity:
+            cart[pid] = current_qty + 1
+        elif _is_ajax_request(request):
+            payload = _build_cart_update_payload(cart, product_id)
+            payload.update({
+                'success': False,
+                'message': 'Досягнуто максимальну кількість в наявності'
+            })
+            return JsonResponse(payload, status=400)
 
     request.session['cart'] = cart
     request.session.modified = True
@@ -451,9 +578,14 @@ def add_review(request, product_id):
 # Удаление отзыва
 def delete_review(request, review_id):
     review = get_object_or_404(Review, id=review_id)
-    customer = request.session.get('customer_id')
-    
-    if str(customer) != str(review.customer.id):
+    customer_id = request.session.get('customer_id')
+
+    if not customer_id:
+        return redirect('shop:login')
+
+    admin = get_object_or_404(Customer, id=customer_id)
+
+    if not admin.is_admin:
         return redirect('shop:product_detail', product_id=review.product.id)
     
     if request.method == 'POST':
@@ -477,6 +609,9 @@ def add_reply_to_review(request, review_id):
     # Проверяем, является ли пользователь администратором
     if not admin.is_admin:
         return redirect('shop:product_detail', product_id=review.product.id)
+
+    if request.method == 'GET':
+        return redirect(f"{reverse('shop:product_detail', kwargs={'product_id': review.product.id})}#review-{review.id}")
     
     if request.method == 'POST':
         form = ReviewReplyForm(request.POST)
@@ -485,7 +620,7 @@ def add_reply_to_review(request, review_id):
             reply.review = review
             reply.admin = admin
             reply.save()
-            return redirect('shop:product_detail', product_id=review.product.id)
+            return redirect(f"{reverse('shop:product_detail', kwargs={'product_id': review.product.id})}#review-{review.id}")
     else:
         form = ReviewReplyForm()
     

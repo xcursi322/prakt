@@ -3,12 +3,38 @@ from .models import Order, Customer, Review, ReviewReply
 
 PAYMENT_CHOICES = [
     ('online', 'Онлайн'),
-    ('cod', 'Наложений платеж'),
+    ('cod', 'Наложений платіж'),
 ]
 
+DELIVERY_CHOICES = [
+    ('np_branch', 'Відділення НП'),
+    ('courier_kyiv', 'Курʼєр по Києву'),
+]
+
+
+def _validate_name_without_digits(value, field_label):
+    normalized_value = (value or '').strip()
+    if any(ch.isdigit() for ch in normalized_value):
+        raise forms.ValidationError(f'{field_label} не може містити цифри')
+    return normalized_value
+
 class CheckoutForm(forms.ModelForm):
+    delivery_method = forms.ChoiceField(
+        choices=DELIVERY_CHOICES,
+        label='Спосіб доставки',
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'data-delivery-method': 'true',
+        }),
+        required=True,
+        error_messages={
+            'required': 'Оберіть спосіб доставки',
+        }
+    )
+
     payment_method = forms.ChoiceField(
-        choices=PAYMENT_CHOICES, 
+        choices=PAYMENT_CHOICES,
+        label='Спосіб оплати',
         widget=forms.Select(attrs={
             'class': 'form-control',
         }),
@@ -29,6 +55,7 @@ class CheckoutForm(forms.ModelForm):
             'city',
             'postal_code',
             'postal_branch',
+            'delivery_method',
             'payment_method',
         ]
         labels = {
@@ -39,7 +66,8 @@ class CheckoutForm(forms.ModelForm):
             'address': 'Адреса',
             'city': 'Місто',
             'postal_code': 'Поштовий індекс',
-            'postal_branch': 'Відділення або поштомат (Нова пошта)',
+            'postal_branch': 'Відділення НП',
+            'delivery_method': 'Спосіб доставки',
             'payment_method': 'Спосіб оплати',
         }
         widgets = {
@@ -50,8 +78,27 @@ class CheckoutForm(forms.ModelForm):
             'address': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Вулиця, будинок, квартира'}),
             'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Місто'}),
             'postal_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Поштовий індекс'}),
-            'postal_branch': forms.TextInput(attrs={'required': True, 'class': 'form-control', 'placeholder': 'Відділення або поштомат (Нова пошта)'}),
+            'postal_branch': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Вкажіть номер/назву відділення НП', 'data-postal-branch': 'true'}),
         }
+
+    def clean_first_name(self):
+        return _validate_name_without_digits(self.cleaned_data.get('first_name'), "Ім'я")
+
+    def clean_last_name(self):
+        return _validate_name_without_digits(self.cleaned_data.get('last_name'), 'Прізвище')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        delivery_method = cleaned_data.get('delivery_method')
+        postal_branch = (cleaned_data.get('postal_branch') or '').strip()
+
+        if delivery_method == 'np_branch' and not postal_branch:
+            self.add_error('postal_branch', 'Вкажіть відділення Нової Пошти')
+
+        if delivery_method != 'np_branch':
+            cleaned_data['postal_branch'] = ''
+
+        return cleaned_data
 
 
 class RegistrationForm(forms.ModelForm):
@@ -110,6 +157,12 @@ class RegistrationForm(forms.ModelForm):
             customer.save()
         return customer
 
+    def clean_first_name(self):
+        return _validate_name_without_digits(self.cleaned_data.get('first_name'), "Ім'я")
+
+    def clean_last_name(self):
+        return _validate_name_without_digits(self.cleaned_data.get('last_name'), 'Прізвище')
+
 
 class LoginForm(forms.Form):
     username = forms.CharField(
@@ -160,6 +213,12 @@ class ProfileForm(forms.ModelForm):
                 'placeholder': 'Поштовий індекс'
             }),
         }
+
+    def clean_first_name(self):
+        return _validate_name_without_digits(self.cleaned_data.get('first_name'), "Ім'я")
+
+    def clean_last_name(self):
+        return _validate_name_without_digits(self.cleaned_data.get('last_name'), 'Прізвище')
 
 
 class ReviewForm(forms.ModelForm):

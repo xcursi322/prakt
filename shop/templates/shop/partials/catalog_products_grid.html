@@ -8,9 +8,15 @@
                 <div class="no-image"><i class="fas fa-box"></i></div>
             {% endif %}
         </a>
-            <a class="product-card-perfect-plus" href="{% url 'shop:add_to_cart' product.id %}" data-add-to-cart-url="{% url 'shop:add_to_cart' product.id %}" title="Додати в кошик" aria-label="Додати в кошик">
-                <i class="fas fa-plus"></i>
-            </a>
+            {% if product.stock_quantity > 0 %}
+                <a class="product-card-perfect-plus" href="{% url 'shop:add_to_cart' product.id %}" data-add-to-cart-url="{% url 'shop:add_to_cart' product.id %}" title="Додати в кошик" aria-label="Додати в кошик">
+                    <i class="fas fa-plus"></i>
+                </a>
+            {% else %}
+                <span class="product-card-perfect-plus opacity-50 cursor-not-allowed" title="Товар закінчився" aria-label="Товар закінчився">
+                    <i class="fas fa-ban"></i>
+                </span>
+            {% endif %}
     </div>
     <div class="product-card-perfect-title">{{ product.name }}</div>
     <div class="product-card-perfect-rating">
@@ -25,7 +31,17 @@
         </span>
         <span class="rating-count">{{ product.review_count|default:0 }}</span>
     </div>
-    <div class="product-card-perfect-price">{{ product.price|floatformat:0 }} ГРН</div>
+    <div class="flex items-baseline gap-2">
+        <div class="product-card-perfect-price">{{ product.price|floatformat:0 }} ГРН</div>
+        {% if product.old_price %}
+            <div class="text-sm text-gray-400 line-through">{{ product.old_price|floatformat:0 }} ГРН</div>
+        {% endif %}
+    </div>
+    {% if product.stock_quantity > 0 %}
+        <div class="text-sm text-green-600 font-semibold mt-2">В наявності</div>
+    {% else %}
+        <div class="text-sm text-red-600 font-semibold mt-2">Товар закінчився</div>
+    {% endif %}
 </div>
 {% empty %}
 <div class="no-products">Товари не знайдені</div>

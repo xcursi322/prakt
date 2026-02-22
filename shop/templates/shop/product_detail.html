@@ -58,13 +58,24 @@
                 <span class="product-price text-4xl sm:text-5xl font-bold text-blue-600">
                     {{ product.price }} ₴
                 </span>
-                <span class="text-gray-400 line-through text-lg">
-                    {{ product.price|add:"50" }} ₴
-                </span>
+                {% if product.old_price %}
+                    <span class="text-gray-400 line-through text-lg">
+                        {{ product.old_price }} ₴
+                    </span>
+                {% endif %}
             </div>
             <p class="text-green-600 font-bold mt-3 flex items-center gap-2">
                 <i class="fas fa-check-circle"></i> Безкоштовна доставка
             </p>
+            {% if product.stock_quantity > 0 %}
+                <p class="text-green-600 font-bold mt-3 flex items-center gap-2">
+                    <i class="fas fa-box"></i> В наявності
+                </p>
+            {% else %}
+                <p class="text-red-600 font-bold mt-3 flex items-center gap-2">
+                    <i class="fas fa-ban"></i> Товар закінчився
+                </p>
+            {% endif %}
         </div>
 
         <!-- Description -->
@@ -91,10 +102,6 @@
                 </li>
                 <li class="flex items-center gap-3 text-gray-700">
                     <i class="fas fa-check text-green-500 font-bold"></i>
-                    <span>Відпускається без рецепту</span>
-                </li>
-                <li class="flex items-center gap-3 text-gray-700">
-                    <i class="fas fa-check text-green-500 font-bold"></i>
                     <span>Гарантія якості</span>
                 </li>
             </ul>
@@ -108,17 +115,23 @@
             <div class="flex items-center gap-4">
                 <label class="font-semibold text-gray-900">Кількість:</label>
                 <div class="flex items-center border-2 border-gray-300 rounded-lg">
-                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold">−</button>
-                    <input type="number" name="quantity" value="1" min="1" max="100" 
+                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold" {% if product.stock_quantity <= 0 %}disabled{% endif %}>−</button>
+                    <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}" {% if product.stock_quantity <= 0 %}disabled{% endif %}
                            class="w-16 text-center font-bold border-0 focus:ring-0" data-quantity-input>
-                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold">+</button>
+                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold" {% if product.stock_quantity <= 0 %}disabled{% endif %}>+</button>
                 </div>
             </div>
 
             <!-- Add to Cart Button -->
+            {% if product.stock_quantity > 0 %}
                 <button type="submit" class="btn btn-primary w-full py-4 text-lg font-bold flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl">
-                <i class="fas fa-shopping-cart"></i> Додати в кошик
-            </button>
+                    <i class="fas fa-shopping-cart"></i> Додати в кошик
+                </button>
+            {% else %}
+                <button type="button" class="btn btn-secondary w-full py-4 text-lg font-bold opacity-70 cursor-not-allowed" disabled>
+                    <i class="fas fa-ban"></i> Немає в наявності
+                </button>
+            {% endif %}
         </form>
 
         <!-- Additional Info -->
@@ -162,7 +175,7 @@
     <div class="space-y-6">
         {% if reviews %}
             {% for review in reviews %}
-                <div class="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition">
+                <div id="review-{{ review.id }}" class="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition">
                     <!-- Review Header -->
                     <div class="flex items-start justify-between mb-4">
                         <div>
@@ -173,14 +186,27 @@
                                         <i class="fas fa-check-circle"></i> Перевірена покупка
                                     </span>
                                 {% endif %}
+                                {% if review.replies.all %}
+                                    <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold flex items-center gap-1">
+                                        <i class="fas fa-shield-alt"></i> Відповів адмін
+                                    </span>
+                                {% endif %}
                             </div>
                             <p class="text-sm text-gray-600">
-                                <strong>{{ review.customer.first_name }} {{ review.customer.last_name }}</strong>
+                                <strong>
+                                    {% if review.customer.first_name or review.customer.last_name %}
+                                        {{ review.customer.first_name }} {{ review.customer.last_name }}
+                                    {% elif review.customer.username %}
+                                        {{ review.customer.username }}
+                                    {% else %}
+                                        {{ review.customer.email }}
+                                    {% endif %}
+                                </strong>
                                 <span class="mx-2">•</span>
                                 <time>{{ review.created_at|date:"d.m.Y" }}</time>
                             </p>
                         </div>
-                        {% if customer_id|stringformat:"s" == review.customer.id|stringformat:"s" %}
+                        {% if is_admin %}
                             <a href="{% url 'shop:delete_review' review.id %}" class="text-red-500 hover:text-red-700 font-semibold text-sm">
                                 <i class="fas fa-trash"></i>
                             </a>
@@ -213,7 +239,16 @@
                                         <i class="fas fa-reply"></i> Відповідь адміністратора
                                     </p>
                                     <p class="text-blue-800 mt-2">{{ reply.text }}</p>
-                                    <p class="text-xs text-blue-600 mt-2">{{ reply.created_at|date:"d.m.Y H:i" }}</p>
+                                    <p class="text-xs text-blue-600 mt-2">
+                                        {% if reply.admin.first_name or reply.admin.last_name %}
+                                            {{ reply.admin.first_name }} {{ reply.admin.last_name }}
+                                        {% elif reply.admin.username %}
+                                            {{ reply.admin.username }}
+                                        {% else %}
+                                            {{ reply.admin.email }}
+                                        {% endif %}
+                                        • {{ reply.created_at|date:"d.m.Y H:i" }}
+                                    </p>
                                 </div>
                             {% endfor %}
                         </div>
@@ -222,9 +257,23 @@
                     <!-- Admin Reply Form -->
                     {% if is_admin %}
                         {% if not review.replies.all %}
-                            <a href="{% url 'shop:add_reply' review.id %}" class="text-blue-600 hover:text-blue-800 font-semibold text-sm inline-flex items-center gap-1">
-                                <i class="fas fa-reply"></i> Відповісти на відгук
-                            </a>
+                            <form method="post" action="{% url 'shop:add_reply' review.id %}" class="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+                                {% csrf_token %}
+                                <label for="reply-text-{{ review.id }}" class="font-semibold text-blue-900 text-sm flex items-center gap-2">
+                                    <i class="fas fa-pen"></i> Відповідь адміністратора
+                                </label>
+                                <textarea
+                                    id="reply-text-{{ review.id }}"
+                                    name="text"
+                                    rows="3"
+                                    maxlength="2000"
+                                    required
+                                    class="w-full p-3 rounded-lg border-2 border-blue-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition"
+                                    placeholder="Напишіть відповідь на відгук..."></textarea>
+                                <button type="submit" class="btn btn-primary text-sm">
+                                    <i class="fas fa-paper-plane"></i> Надіслати відповідь
+                                </button>
+                            </form>
                         {% endif %}
                     {% endif %}
                 </div>
@@ -276,7 +325,11 @@
             });
             buttons[1].addEventListener('click', (e) => {
                 e.preventDefault();
-                input.value++;
+                const max = parseInt(input.max || '9999', 10);
+                const currentValue = parseInt(input.value || '1', 10);
+                if (currentValue < max) {
+                    input.value = currentValue + 1;
+                }
             });
         }
     });

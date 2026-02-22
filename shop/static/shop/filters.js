@@ -39,6 +39,7 @@ function applyFilters() {
     const sortFilter = document.getElementById('sortFilter');
     const searchInput = document.getElementById('searchInput');
     const productsGrid = document.getElementById('productsGrid');
+    const catalogHero = document.getElementById('catalogHero');
     const categoryId = categoryFilter ? categoryFilter.value : '';
     const sortValue = sortFilter ? sortFilter.value : '';
     const searchValue = searchInput ? searchInput.value.trim() : '';
@@ -80,6 +81,9 @@ function applyFilters() {
         }
 
         productsGrid.innerHTML = data.products_html;
+        if (catalogHero && typeof data.hero_html === 'string') {
+            catalogHero.innerHTML = data.hero_html;
+        }
         productsGrid.style.opacity = '1';
         window.history.pushState({}, '', url);
     })
@@ -163,16 +167,17 @@ function handleAddToCart(e) {
             'X-Requested-With': 'XMLHttpRequest',
         },
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('add_to_cart_failed');
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.success === false) {
+            throw data;
         }
-        return response.json();
+        return data;
     })
     .then(data => {
         if (!data) return;
         // Успішно додано
-        showNotification('Товар додано до кошика!', 'success');
+        showNotification(data.message || 'Товар додано до кошика!', 'success');
         // Оновити лічильник кошика (якщо є)
         const cartCount = document.querySelector('[data-cart-count]');
         if (cartCount && typeof data.cart_count !== 'undefined') {
@@ -187,7 +192,11 @@ function handleAddToCart(e) {
             }, 600);
         }
     })
-    .catch(() => {
+    .catch((errorData) => {
+        if (errorData && errorData.message) {
+            showNotification(errorData.message, 'error');
+            return;
+        }
         // Fallback: navigate to add URL to ensure item is added
         window.location.href = addUrl;
     });
@@ -216,11 +225,12 @@ function handleCartAction(e) {
             'X-Requested-With': 'XMLHttpRequest',
         },
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('cart_action_failed');
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.success === false) {
+            throw data;
         }
-        return response.json();
+        return data;
     })
     .then(data => {
         if (!data || typeof data.product_id === 'undefined') {
@@ -233,7 +243,12 @@ function handleCartAction(e) {
             setCartActionsLoading(cartItem, false);
         }
     })
-    .catch(() => {
+    .catch((errorData) => {
+        setCartActionsLoading(cartItem, false);
+        if (errorData && errorData.message) {
+            showNotification(errorData.message, 'error');
+            return;
+        }
         window.location.href = actionUrl;
     });
 }
@@ -424,10 +439,26 @@ function isValidPhone(phone) {
 
 // === NOTIFICATIONS ===
 function showNotification(message, type = 'info') {
-    const container = document.querySelector('[data-notifications]') || document.body;
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const normalizedType = ['success', 'error', 'info'].includes(type) ? type : 'info';
+    const messageKey = `${normalizedType}:${String(message).trim()}`;
+
+    const existing = container.querySelector(`[data-message-key="${CSS.escape(messageKey)}"]`);
+    if (existing) {
+        existing.remove();
+    }
+
     const notification = document.createElement('div');
-    notification.className = `alert alert-${type}`;
-    
+    notification.className = `toast-notification toast-${normalizedType}`;
+    notification.dataset.messageKey = messageKey;
+
     const icons = {
         success: 'fa-check-circle',
         error: 'fa-exclamation-circle',
@@ -435,18 +466,25 @@ function showNotification(message, type = 'info') {
     };
 
     notification.innerHTML = `
-        <i class="fas ${icons[type]}"></i>
-        <span>${message}</span>
+        <i class="fas ${icons[normalizedType]} toast-icon"></i>
+        <span class="toast-message">${message}</span>
+        <button type="button" class="toast-close" aria-label="Close notification">×</button>
+        <span class="toast-progress"></span>
     `;
 
-    container.insertBefore(notification, container.firstChild);
+    container.prepend(notification);
 
-    // Auto remove notification
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateX(-100%)';
-        setTimeout(() => notification.remove(), 300);
-    }, 4000);
+    const closeToast = () => {
+        notification.classList.add('is-hiding');
+        setTimeout(() => notification.remove(), 220);
+    };
+
+    const closeBtn = notification.querySelector('.toast-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeToast);
+    }
+
+    setTimeout(closeToast, 3800);
 }
 
 // === DROPDOWN MENU ===

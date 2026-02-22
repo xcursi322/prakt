@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django import forms
+from django.db.models import Q
 
 from .models import Product, Order, OrderItem, Category, Customer, Review, ReviewReply
 
@@ -73,10 +74,10 @@ class CustomerAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'category', 'created_at')
+    list_display = ('name', 'price', 'old_price', 'stock_quantity', 'category', 'created_at')
     list_filter = ('category', 'created_at')
     search_fields = ('name', 'description')
-    fields = ('name', 'price', 'description', 'category', 'image')
+    fields = ('name', 'price', 'old_price', 'stock_quantity', 'description', 'category', 'image')
 
 # Чтобы видеть товары внутри заказа прямо в админке
 class OrderItemInline(admin.TabularInline):
@@ -88,15 +89,51 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'first_name', 'last_name', 'email', 'phone', 'total','status', 'created_at')
-    list_filter = ('status', 'created_at',)
+    list_display = ('id', 'first_name', 'last_name', 'email', 'phone', 'delivery_method', 'total','status', 'created_at')
+    list_filter = ('status', 'delivery_method', 'created_at',)
     search_fields = ('first_name', 'last_name', 'email', 'phone')
     readonly_fields = ('total', 'created_at')
     inlines = [OrderItemInline]  # показываем все товары прямо внутри заказа
 
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        if obj:
+            readonly.append('customer')
+        return tuple(readonly)
+
+
+class ReviewReplyAdminForm(forms.ModelForm):
+    class Meta:
+        model = ReviewReply
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        admin_field = self.fields.get('admin')
+        if not admin_field:
+            return
+
+        admin_queryset = Customer.objects.filter(is_admin=True, is_active=True)
+
+        if self.instance and self.instance.pk and self.instance.admin_id:
+            admin_queryset = Customer.objects.filter(
+                Q(is_admin=True, is_active=True) | Q(pk=self.instance.admin_id)
+            )
+
+        admin_field.queryset = admin_queryset.order_by('username').distinct()
+
+    def clean_admin(self):
+        selected_admin = self.cleaned_data.get('admin')
+        if selected_admin and not selected_admin.is_admin:
+            raise forms.ValidationError('Для відповіді можна обрати лише адміністратора.')
+        if selected_admin and not selected_admin.is_active:
+            raise forms.ValidationError('Неактивного адміністратора обрати не можна.')
+        return selected_admin
+
 
 class ReviewReplyInline(admin.TabularInline):
     model = ReviewReply
+    form = ReviewReplyAdminForm
     extra = 1
     fields = ('admin', 'text', 'created_at')
     readonly_fields = ('created_at',)
@@ -125,6 +162,7 @@ class ReviewAdmin(admin.ModelAdmin):
 
 @admin.register(ReviewReply)
 class ReviewReplyAdmin(admin.ModelAdmin):
+    form = ReviewReplyAdminForm
     list_display = ('review', 'admin', 'created_at')
     list_filter = ('created_at',)
     search_fields = ('text', 'review__title', 'admin__username')

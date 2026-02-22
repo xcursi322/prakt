@@ -72,7 +72,7 @@
                     <div class="space-y-6">
                         {% for field in form %}
                             {% if field.name in "address city postal_code postal_branch" %}
-                                <div class="form-group">
+                                <div class="form-group" {% if field.name == 'postal_branch' %}id="postalBranchGroup"{% endif %}>
                                     <label for="{{ field.id_for_label }}" class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                         {% if field.name == 'address' %}
                                             <i class="fas fa-home text-blue-600"></i>
@@ -99,6 +99,26 @@
                     </div>
                 </div>
 
+                <!-- Delivery Method -->
+                {% for field in form %}
+                    {% if field.name == "delivery_method" %}
+                        <div class="mb-8">
+                            <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                <i class="fas fa-truck text-blue-600"></i> Спосіб доставки
+                            </h2>
+                            <div class="form-group">
+                                {{ field|safe }}
+                                {% if field.errors %}
+                                    <div class="form-error">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        {{ field.errors|striptags }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
                 <!-- Payment Method -->
                 {% for field in form %}
                     {% if field.name == "payment_method" %}
@@ -107,9 +127,6 @@
                                 <i class="fas fa-credit-card text-blue-600"></i> Спосіб оплати
                             </h2>
                             <div class="form-group">
-                                <label for="{{ field.id_for_label }}" class="font-semibold text-gray-700 mb-2">
-                                    {{ field.label }} {% if field.field.required %}<span class="text-red-600">*</span>{% endif %}
-                                </label>
                                 {{ field|safe }}
                                 {% if field.errors %}
                                     <div class="form-error">
@@ -148,15 +165,15 @@
             <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white border-opacity-20">
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-blue-100">Сума товарів:</span>
-                    <span class="font-bold">{{ total }} ₴</span>
+                    <span class="font-bold" data-subtotal>{{ total }} ₴</span>
                 </div>
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-blue-300">
                     <span class="text-blue-100">Доставка:</span>
-                    <span class="text-green-300 font-bold">Безкоштовно</span>
+                    <span class="text-green-300 font-bold" data-shipping-cost>{{ shipping_cost }} ₴</span>
                 </div>
                 <div class="flex justify-between items-center text-2xl font-bold">
                     <span>До сплати:</span>
-                    <span class="text-yellow-300">{{ total }} ₴</span>
+                    <span class="text-yellow-300" data-grand-total>{{ grand_total }} ₴</span>
                 </div>
             </div>
 
@@ -186,5 +203,53 @@
             validateField.call(this);
         });
     });
+
+    (function setupDeliveryBehavior() {
+        const deliverySelect = document.querySelector('[data-delivery-method="true"]');
+        const postalBranchInput = document.querySelector('[data-postal-branch="true"]');
+        const postalBranchGroup = document.getElementById('postalBranchGroup');
+        const shippingCostEl = document.querySelector('[data-shipping-cost]');
+        const grandTotalEl = document.querySelector('[data-grand-total]');
+
+        if (!deliverySelect || !postalBranchInput || !postalBranchGroup || !shippingCostEl || !grandTotalEl) {
+            return;
+        }
+
+        const subtotal = Number('{{ total|floatformat:"2" }}');
+
+        const formatPrice = (value) => {
+            const normalized = Number(value || 0);
+            if (Number.isInteger(normalized)) {
+                return `${normalized} ₴`;
+            }
+            return `${normalized.toFixed(2)} ₴`;
+        };
+
+        const getShippingCost = (method) => {
+            if (method === 'courier_kyiv') {
+                return subtotal >= 2000 ? 0 : 120;
+            }
+            return subtotal >= 1500 ? 0 : 70;
+        };
+
+        const syncDeliveryUI = () => {
+            const method = deliverySelect.value;
+            const isNpBranch = method === 'np_branch';
+
+            postalBranchGroup.style.display = isNpBranch ? '' : 'none';
+            postalBranchInput.required = isNpBranch;
+            if (!isNpBranch) {
+                postalBranchInput.value = '';
+            }
+
+            const shippingCost = getShippingCost(method);
+            const grandTotal = subtotal + shippingCost;
+            shippingCostEl.textContent = shippingCost === 0 ? 'Безкоштовно' : formatPrice(shippingCost);
+            grandTotalEl.textContent = formatPrice(grandTotal);
+        };
+
+        syncDeliveryUI();
+        deliverySelect.addEventListener('change', syncDeliveryUI);
+    })();
 </script>
 {% endblock %}

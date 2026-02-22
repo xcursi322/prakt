@@ -8,6 +8,11 @@ STATUS_CHOICES = [
     ('completed', 'Виконано'),
 ]
 
+DELIVERY_METHOD_CHOICES = [
+    ('np_branch', 'Відділення НП'),
+    ('courier_kyiv', 'Курʼєр по Києву'),
+]
+
 class Customer(models.Model):
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True)
@@ -55,6 +60,7 @@ class Product(models.Model):
     is_gift = models.BooleanField(default=False, help_text="Подарунок")
     is_bestseller = models.BooleanField(default=False, help_text="Bestseller")
     rating_count = models.PositiveIntegerField(default=0, help_text="Количество отзывов/рейтинг")
+    stock_quantity = models.PositiveIntegerField(default=50, help_text="Кількість в наявності")
     description = models.TextField()              # Описание
     image = models.ImageField(upload_to='products/', blank=True, null=True)  # Картинка
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')  # Категория
@@ -82,10 +88,21 @@ class Order(models.Model):
     city = models.CharField(max_length=100, blank=True)
     postal_code = models.CharField(max_length=20, blank=True)
     postal_branch = models.CharField(max_length=100, blank=True)
+    delivery_method = models.CharField(max_length=20, choices=DELIVERY_METHOD_CHOICES, default='np_branch', blank=True)
     payment_method = models.CharField(max_length=20, blank=True)
     total = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
+
+    def delivery_method_label(self):
+        labels = {
+            'np_branch': 'Відділення НП',
+            'courier_kyiv': 'Курʼєр по Києву',
+            'nova_poshta': 'Відділення НП',
+            'courier': 'Курʼєр по Києву',
+            'pickup': 'Самовивіз',
+        }
+        return labels.get(self.delivery_method, self.delivery_method)
 
     def __str__(self):
         if self.first_name or self.last_name:
