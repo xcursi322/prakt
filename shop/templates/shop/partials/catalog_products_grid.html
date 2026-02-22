@@ -15,17 +15,15 @@
     <div class="product-card-perfect-title">{{ product.name }}</div>
     <div class="product-card-perfect-rating">
         <span class="stars">
-            {% with avg=product.reviews.aggregate_avg_rating|default:5 %}
             {% for i in "12345" %}
-                {% if forloop.counter <= product.reviews.aggregate_avg_rating|default:5 %}
+                {% if forloop.counter <= product.aggregate_avg_rating|default:0 %}
                     <span class="star-full">&#9733;</span>
                 {% else %}
                     <span class="star-empty">&#9733;</span>
                 {% endif %}
             {% endfor %}
-            {% endwith %}
         </span>
-        <span class="rating-count">{{ product.rating_count|default:0 }}</span>
+        <span class="rating-count">{{ product.review_count|default:0 }}</span>
     </div>
     <div class="product-card-perfect-price">{{ product.price|floatformat:0 }} ГРН</div>
 </div>

@@ -51,7 +51,7 @@ def delivery(request):
 
 # Каталог товаров
 def catalog(request):
-    from django.db.models import Avg
+    from django.db.models import Avg, Count
     products = Product.objects.all()
     categories = Category.objects.all()
     selected_category = None
@@ -78,10 +78,10 @@ def catalog(request):
     # Добавляем средний рейтинг к каждому продукту
     products = list(products)
     for p in products:
-        avg_rating = p.reviews.aggregate_avg_rating if hasattr(p.reviews, 'aggregate_avg_rating') else None
-        if avg_rating is None:
-            avg_rating = p.reviews.aggregate(Avg('rating')).get('rating__avg')
-        p.aggregate_avg_rating = int(round(avg_rating)) if avg_rating else 5
+        rating_stats = p.reviews.aggregate(avg_rating=Avg('rating'), review_count=Count('id'))
+        avg_rating = rating_stats.get('avg_rating')
+        p.aggregate_avg_rating = int(round(avg_rating)) if avg_rating is not None else 0
+        p.review_count = rating_stats.get('review_count') or 0
 
     if _is_ajax_request(request):
         products_html = render_to_string('shop/partials/catalog_products_grid.html', {
@@ -105,6 +105,8 @@ def catalog(request):
 # Детальная страница продукта
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id)
+    reviews = product.reviews.select_related('customer').prefetch_related('replies')
+    review_count = reviews.count()
     customer_id = request.session.get('customer_id')
     is_admin = False
     
@@ -117,6 +119,8 @@ def product_detail(request, product_id):
     
     return render(request, 'shop/product_detail.html', {
         'product': product,
+        'reviews': reviews,
+        'review_count': review_count,
         'customer_id': customer_id,
         'is_admin': is_admin
     })
