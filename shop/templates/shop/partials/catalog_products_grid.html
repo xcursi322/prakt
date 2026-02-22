@@ -19,6 +19,7 @@
             {% endif %}
     </div>
     <div class="product-card-perfect-title">{{ product.name }}</div>
+    <div class="text-sm text-gray-400 -mt-4 leading-relaxed">{{ product.description|truncatechars:90 }}</div>
     <div class="product-card-perfect-rating">
         <span class="stars">
             {% for i in "12345" %}
