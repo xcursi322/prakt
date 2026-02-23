@@ -3,7 +3,7 @@
 {% block title %}Замовлення оформлено!{% endblock %}
 
 {% block content %}
-<!-- Success Message -->
+<!-- Повідомлення про успіх -->
 <div class="text-center fade-in-up mb-12">
     <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full shadow-lg mb-6">
         <i class="fas fa-check text-white text-4xl"></i>
@@ -13,9 +13,9 @@
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 fade-in-up">
-    <!-- Order Details -->
+    <!-- Деталі замовлення -->
     <div class="lg:col-span-2 space-y-6">
-        <!-- Order Number -->
+        <!-- Номер замовлення -->
         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-8">
             <p class="text-gray-600 text-sm mb-2 flex items-center gap-2">
                 <i class="fas fa-hashtag text-blue-600"></i> Номер замовлення
@@ -27,7 +27,7 @@
             </p>
         </div>
 
-        <!-- Order Total -->
+        <!-- Сума замовлення -->
         <div class="bg-white border-2 border-gray-200 rounded-2xl shadow-md p-8">
             <div class="flex justify-between items-center mb-4 pb-4 border-b-2 border-gray-200">
                 <span class="text-gray-700 text-lg">Сума товарів:</span>
@@ -43,7 +43,7 @@
             </div>
         </div>
 
-        <!-- Customer Information -->
+        <!-- Інформація про клієнта -->
         <div class="bg-white border-2 border-gray-200 rounded-2xl shadow-md p-8">
             <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <i class="fas fa-user text-blue-600"></i> Дані по замовленню
@@ -107,7 +107,7 @@
             </div>
         </div>
 
-        <!-- Next Steps -->
+        <!-- Наступні кроки -->
         <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-8">
             <h3 class="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
                 <i class="fas fa-list-check"></i> Наступні кроки
@@ -133,9 +133,9 @@
         </div>
     </div>
 
-    <!-- Sidebar -->
+    <!-- Бічний блок -->
     <div class="lg:col-span-1">
-        <!-- Quick Actions -->
+        <!-- Швидкі дії -->
         <div class="bg-white border-2 border-gray-200 rounded-2xl shadow-md p-8 sticky top-24 fade-in-up">
             <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <i class="fas fa-rocket text-blue-600"></i> Що далі?
@@ -167,7 +167,7 @@
                 </div>
             </div>
 
-            <!-- Support -->
+            <!-- Підтримка -->
             <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 text-center mb-8">
                 <p class="text-sm text-gray-600 mb-2">Потрібна допомога?</p>
                 <a href="#" class="text-blue-600 font-bold hover:text-blue-800 flex items-center justify-center gap-2">
@@ -175,7 +175,7 @@
                 </a>
             </div>
 
-            <!-- Action Buttons -->
+            <!-- Кнопки дій -->
             <div class="space-y-3">
                 <a href="{% url 'shop:home' %}" class="btn btn-primary w-full py-3 font-bold flex items-center justify-center gap-2">
                     <i class="fas fa-home"></i> На головну

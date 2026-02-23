@@ -15,13 +15,13 @@ urlpatterns = [
     path('cart/decrease/<int:product_id>/', views.decrease_quantity, name='decrease_quantity'),
     path('cart/remove/<int:product_id>/', views.remove_from_cart, name='remove_from_cart'),
     path('filters.js', views.filters_js, name='filters'),
-    # Auth URLs
+    # Шляхи авторизації
     path('register/', views.register, name='register'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('orders/', views.orders, name='orders'),
     path('profile/', views.profile, name='profile'),
-    # Review URLs
+    # Шляхи відгуків
     path('product/<int:product_id>/review/add/', views.add_review, name='add_review'),
     path('review/<int:review_id>/delete/', views.delete_review, name='delete_review'),
     path('review/<int:review_id>/reply/', views.add_reply_to_review, name='add_reply'),

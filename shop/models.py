@@ -32,16 +32,16 @@ class Customer(models.Model):
         return f"{self.username} ({self.email})"
 
     def set_password(self, raw_password):
-        """Хеширование пароля"""
+        """Хешування пароля"""
         self.password = hashlib.sha256(raw_password.encode()).hexdigest()
 
     def check_password(self, raw_password):
-        """Проверка пароля"""
+        """Перевірка пароля"""
         return self.password == hashlib.sha256(raw_password.encode()).hexdigest()
 
 class Category(models.Model):
-    name = models.CharField(max_length=200)  # Название категории
-    description = models.TextField(blank=True)  # Описание категории
+    name = models.CharField(max_length=200)  # Назва категорії
+    description = models.TextField(blank=True)  # Опис категорії
     
     class Meta:
         verbose_name_plural = "Categories"
@@ -51,20 +51,20 @@ class Category(models.Model):
 
 
 class Product(models.Model):
-    name = models.CharField(max_length=200)       # Название товара
+    name = models.CharField(max_length=200)       # Назва товару
     brand = models.CharField(max_length=100, default="ALLNUTRITION", blank=True)  # Бренд
     weight = models.PositiveIntegerField(default=0, help_text="Вес в граммах")
-    price = models.DecimalField(max_digits=10, decimal_places=2)  # Цена
+    price = models.DecimalField(max_digits=10, decimal_places=2)  # Ціна
     old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Старая цена")
     discount = models.PositiveIntegerField(default=0, help_text="Скидка в процентах")
     is_gift = models.BooleanField(default=False, help_text="Подарунок")
     is_bestseller = models.BooleanField(default=False, help_text="Bestseller")
     rating_count = models.PositiveIntegerField(default=0, help_text="Количество отзывов/рейтинг")
     stock_quantity = models.PositiveIntegerField(default=50, help_text="Кількість в наявності")
-    description = models.TextField()              # Описание
-    image = models.ImageField(upload_to='products/', blank=True, null=True)  # Картинка
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')  # Категория
-    created_at = models.DateTimeField(auto_now_add=True)  # Дата создания
+    description = models.TextField()              # Опис
+    image = models.ImageField(upload_to='products/', blank=True, null=True)  # Зображення
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')  # Категорія
+    created_at = models.DateTimeField(auto_now_add=True)  # Дата створення
 
     def __str__(self):
         return self.name
@@ -120,7 +120,7 @@ class OrderItem(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     def total_price(self):
-        # если quantity или price None, возвращаем 0
+        # якщо quantity або price дорівнює None, повертаємо 0
         qty = self.quantity if self.quantity is not None else 0
         prc = self.price if self.price is not None else 0
         return qty * prc

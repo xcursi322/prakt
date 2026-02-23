@@ -462,7 +462,7 @@ html.theme-dark .delivery-zones-tags span {
 	right: 0.5rem;
 	width: 2.1rem;
 	height: 2.1rem;
-	/* Удалены дублирующиеся определения. Оставлены только последние версии классов ниже. */
+	/* Видалено дубльовані визначення. Нижче залишено лише останні версії класів. */
 	border-radius: 50%;
 	background: #fff;
 	border: 1.5px solid #e5e7eb;
@@ -531,7 +531,7 @@ html.theme-dark .delivery-zones-tags span {
 	letter-spacing: 0.01em;
 }
 
-/* === CART ITEM DESIGN === */
+/* === ДИЗАЙН ЕЛЕМЕНТА КОШИКА === */
 .cart-page {
 	--cart-ink: #0f172a;
 	--cart-muted: #64748b;
@@ -698,7 +698,7 @@ html.theme-dark .delivery-zones-tags span {
 	}
 }
 
-/* === HOME PAGE === */
+/* === ГОЛОВНА СТОРІНКА === */
 .home-hero {
 	background: linear-gradient(135deg, #1d4ed8 0%, #06b6d4 45%, #22c55e 100%);
 	color: #f8fafc;
@@ -1246,7 +1246,7 @@ html.theme-dark .delivery-zones-tags span {
 		flex-direction: column;
 	}
 }
-/* === MODERN PRODUCT CARD BLOCK === */
+/* === БЛОК СУЧАСНОЇ КАРТКИ ТОВАРУ === */
 .products-grid-perfect {
 	display: flex;
 	flex-wrap: wrap;

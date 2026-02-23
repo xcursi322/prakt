@@ -3,12 +3,12 @@
 {% block title %}Каталог товарів{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
+<!-- Головний блок -->
 <div id="catalogHero">
     {% include 'shop/partials/catalog_hero.html' %}
 </div>
 
-<!-- Filters Section -->
+<!-- Блок фільтрів -->
 <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8 mb-10 fade-in-up">
     <div class="flex items-center gap-3 mb-8">
         <div class="w-1 h-8 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full"></div>
@@ -16,7 +16,7 @@
     </div>
     
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Category Filter -->
+        <!-- Фільтр категорії -->
         <div class="form-group mb-0">
             <label class="font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <i class="fas fa-list text-blue-600 text-lg"></i> Категорія
@@ -31,7 +31,7 @@
             </select>
         </div>
 
-        <!-- Sort Filter -->
+        <!-- Фільтр сортування -->
         <div class="form-group mb-0">
             <label class="font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <i class="fas fa-sort text-blue-600 text-lg"></i> Сортування
@@ -44,7 +44,7 @@
             </select>
         </div>
 
-        <!-- Search Input -->
+        <!-- Поле пошуку -->
         <div class="form-group mb-0">
             <label class="font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <i class="fas fa-search text-blue-600 text-lg"></i> Пошук
@@ -52,7 +52,7 @@
             <input type="text" id="searchInput" value="{{ selected_query|default:'' }}" placeholder="Введіть назву товару..." class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition font-medium hover:border-blue-300">
         </div>
 
-        <!-- Clear Filters -->
+        <!-- Скинути фільтри -->
         <div class="flex items-end">
             <a href="{% url 'shop:catalog' %}" class="w-full btn btn-secondary py-3 font-semibold flex items-center justify-center gap-2 hover:bg-gray-300">
                 <i class="fas fa-redo"></i> Скинути фільтри
@@ -62,11 +62,11 @@
 </div>
 
 
-<!-- Results Info (удалено для чистого дизайна) -->
+<!-- Інформація про результати (видалено для чистого дизайну) -->
 
 
 
-<!-- Products Grid (Card Style Like Image) -->
+<!-- Сітка товарів (стиль карток як на зразку) -->
 <div class="products-grid-perfect" id="productsGrid">
     {% include 'shop/partials/catalog_products_grid.html' %}
 </div>

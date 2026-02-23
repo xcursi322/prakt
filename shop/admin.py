@@ -79,7 +79,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description')
     fields = ('name', 'price', 'old_price', 'stock_quantity', 'description', 'category', 'image')
 
-# Чтобы видеть товары внутри заказа прямо в админке
+# Щоб бачити товари всередині замовлення прямо в адмінці
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
@@ -93,7 +93,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ('status', 'delivery_method', 'created_at',)
     search_fields = ('first_name', 'last_name', 'email', 'phone')
     readonly_fields = ('total', 'created_at')
-    inlines = [OrderItemInline]  # показываем все товары прямо внутри заказа
+    inlines = [OrderItemInline]  # показуємо всі товари прямо всередині замовлення
 
     def get_readonly_fields(self, request, obj=None):
         readonly = list(super().get_readonly_fields(request, obj))

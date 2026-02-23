@@ -3,10 +3,10 @@
 {% block title %}Вхід в акаунт - SportShop{% endblock %}
 
 {% block content %}
-<!-- Auth Page Container -->
+<!-- Контейнер сторінки авторизації -->
 <div class="auth-page auth-login max-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="w-full max-w-md fade-in-up">
-        <!-- Logo Section -->
+        <!-- Блок логотипа -->
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-4">
                 <i class="fas fa-user text-white text-2xl"></i>
@@ -15,12 +15,12 @@
             <p class="text-gray-600 mt-2">Увійдіть до вашого акаунту SportShop</p>
         </div>
 
-        <!-- Login Form -->
+        <!-- Форма входу -->
         <div class="bg-white rounded-2xl shadow-xl p-8 border-2 border-gray-100">
             <form method="POST" data-validate>
                 {% csrf_token %}
                 
-                <!-- Non-field Errors -->
+                <!-- Загальні помилки форми -->
                 {% if form.non_field_errors %}
                     <div class="alert alert-error mb-6">
                         <i class="fas fa-exclamation-circle"></i>
@@ -32,7 +32,7 @@
                     </div>
                 {% endif %}
                 
-                <!-- Username Field -->
+                <!-- Поле імені користувача -->
                 <div class="form-group">
                     <label for="{{ form.username.id_for_label }}" class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
                         <i class="fas fa-user-circle text-blue-600"></i> Ім'я користувача
@@ -48,7 +48,7 @@
                     {% endif %}
                 </div>
                 
-                <!-- Password Field -->
+                <!-- Поле пароля -->
                 <div class="form-group">
                     <label for="{{ form.password.id_for_label }}" class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
                         <i class="fas fa-lock text-blue-600"></i> Пароль
@@ -64,20 +64,20 @@
                     {% endif %}
                 </div>
 
-                <!-- Remember Me Checkbox -->
+                <!-- Чекбокс «Запам'ятати мене» -->
                 <div class="flex items-center gap-2 mb-6">
                     <input type="checkbox" id="remember" name="remember" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                     <label for="remember" class="text-gray-700 text-sm">Запам'ятати мене</label>
                 </div>
                 
-                <!-- Submit Button -->
+                <!-- Кнопка підтвердження -->
                 <button type="submit" class="btn btn-primary w-full py-3 text-lg font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl">
                     <i class="fas fa-sign-in-alt"></i> Увійти
                 </button>
             </form>
         </div>
 
-        <!-- Sign Up Link -->
+        <!-- Посилання на реєстрацію -->
         <div class="mt-6 text-center">
             <p class="text-gray-700">
                 Немає акаунту?
@@ -87,7 +87,7 @@
             </p>
         </div>
 
-        <!-- Features -->
+        <!-- Переваги -->
         <div class="mt-8 grid grid-cols-3 gap-4 text-center text-sm text-gray-600">
             <div class="bg-white p-4 rounded-lg border border-gray-200">
                 <i class="fas fa-lock text-blue-600 text-lg mb-2"></i>

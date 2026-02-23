@@ -47,9 +47,9 @@ def _build_cart_update_payload(cart, product_id):
         'empty': cart_count == 0,
     }
 
-# Главная страница (приветственная)
+# Головна сторінка (вітальна)
 def home(request):
-    featured_products = Product.objects.all()[:6]  # Показываем 6 лучших товаров
+    featured_products = Product.objects.all()[:6]  # Показуємо 6 найкращих товарів
     return render(request, 'shop/home.html', {
         'featured_products': featured_products
     })
@@ -58,7 +58,7 @@ def home(request):
 def delivery(request):
     return render(request, 'shop/delivery.html')
 
-# Каталог товаров
+# Каталог товарів
 def catalog(request):
     from django.db.models import Avg, Count
     products = Product.objects.all()
@@ -69,13 +69,13 @@ def catalog(request):
     if search_query:
         products = products.filter(name__icontains=search_query)
 
-    # Фильтрация по категории
+    # Фільтрація за категорією
     category_id = request.GET.get('category')
     if category_id:
         products = products.filter(category_id=category_id)
         selected_category = get_object_or_404(Category, id=category_id)
 
-    # Сортировка по цене
+    # Сортування за ціною
     sort = request.GET.get('sort')
     if sort == 'price_asc':
         products = products.order_by('price')
@@ -84,7 +84,7 @@ def catalog(request):
     elif sort == 'newest':
         products = products.order_by('-created_at')
 
-    # Добавляем средний рейтинг к каждому продукту
+    # Додаємо середній рейтинг до кожного продукту
     products = list(products)
     for p in products:
         rating_stats = p.reviews.aggregate(avg_rating=Avg('rating'), review_count=Count('id'))
@@ -115,7 +115,7 @@ def catalog(request):
         'selected_query': search_query
     })
 
-# Детальная страница продукта
+# Детальна сторінка продукту
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     reviews = product.reviews.select_related('customer').prefetch_related('replies')
@@ -152,10 +152,10 @@ def product_detail(request, product_id):
     })
 
 
-# Добавление товара в корзину
+# Додавання товару в кошик
 def add_to_cart(request, product_id):
     if not request.session.get('customer_id'):
-        # Если пользователь не авторизован, используем session ID для гостя
+        # Якщо користувач не авторизований, використовуємо session ID для гостя
         request.session['guest_session'] = request.session.session_key
 
     quantity = 1
@@ -175,7 +175,7 @@ def add_to_cart(request, product_id):
 
     product = get_object_or_404(Product, id=product_id)
 
-    cart = request.session.get('cart', {})  # получаем корзину из сессии
+    cart = request.session.get('cart', {})  # отримуємо кошик із сесії
     existing_quantity = int(cart.get(str(product_id), 0) or 0)
     if product.stock_quantity <= 0:
         if _is_ajax_request(request):
@@ -202,7 +202,7 @@ def add_to_cart(request, product_id):
     actual_add = min(quantity, allowed_to_add)
     cart[str(product_id)] = existing_quantity + actual_add
     request.session['cart'] = cart
-    request.session.modified = True  # обязательно для сохранения изменений
+    request.session.modified = True  # обов'язково для збереження змін
 
     if _is_ajax_request(request):
         total_count = 0
@@ -222,7 +222,7 @@ def add_to_cart(request, product_id):
     return redirect('shop:catalog')
 
 
-# Просмотр корзины
+# Перегляд кошика
 def cart(request):
     cart = request.session.get('cart', {})
 
@@ -246,7 +246,7 @@ def cart(request):
         'total': total
     })
 
-# Чекаут
+# Оформлення замовлення
 def checkout(request):
     cart = request.session.get('cart', {})
     if not cart:
@@ -379,7 +379,7 @@ def checkout(request):
         'grand_total': grand_total,
     })
 
-# Увеличение количества товара в корзине
+# Збільшення кількості товару в кошику
 def increase_quantity(request, product_id):
     cart = request.session.get('cart', {})
     pid = str(product_id)
@@ -405,7 +405,7 @@ def increase_quantity(request, product_id):
 
     return redirect('shop:cart')
 
-# Уменьшение количества товара в корзине
+# Зменшення кількості товару в кошику
 def decrease_quantity(request, product_id):
     cart = request.session.get('cart', {})
     pid = str(product_id)
@@ -423,7 +423,7 @@ def decrease_quantity(request, product_id):
 
     return redirect('shop:cart')
 
-# Удаление товара из корзины
+# Видалення товару з кошика
 def remove_from_cart(request, product_id):
     cart = request.session.get('cart', {})
     pid = str(product_id)
@@ -439,13 +439,13 @@ def remove_from_cart(request, product_id):
 
     return redirect('shop:cart')
 
-# Подача JS файла с фильтрами
+# Віддача JS-файлу з фільтрами
 def filters_js(request):
     from django.conf import settings
     js_file_path = settings.BASE_DIR / 'shop' / 'static' / 'shop' / 'filters.js'
     return FileResponse(open(js_file_path, 'rb'), content_type='application/javascript')
 
-# Регистрация
+# Реєстрація
 def register(request):
     if request.session.get('customer_id'):
         return redirect('shop:index')
@@ -464,7 +464,7 @@ def register(request):
     return render(request, 'shop/register.html', {'form': form})
 
 
-# Вход
+# Вхід
 def login_view(request):
     if request.session.get('customer_id'):
         return redirect('shop:home')
@@ -484,7 +484,7 @@ def login_view(request):
                     return redirect('shop:catalog')
 
                 if customer.password == password and customer.is_active:
-                    # Backward-compatibility: upgrade plaintext passwords on first login.
+                    # Зворотна сумісність: оновлюємо паролі у відкритому вигляді під час першого входу.
                     customer.set_password(password)
                     customer.save(update_fields=['password', 'updated_at'])
                     request.session['customer_id'] = customer.id
@@ -511,7 +511,7 @@ def logout_view(request):
     return redirect('shop:home')
 
 
-# Просмотр заказов пользователя
+# Перегляд замовлень користувача
 def orders(request):
     customer_id = request.session.get('customer_id')
     if not customer_id:
@@ -557,7 +557,7 @@ def profile(request):
     })
 
 
-# Добавление отзыва к товару
+# Додавання відгуку до товару
 def add_review(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     customer = request.session.get('customer_id')
@@ -567,7 +567,7 @@ def add_review(request, product_id):
     
     customer = get_object_or_404(Customer, id=customer)
     
-    # Проверяем, уже ли пользователь оставил отзыв на этот товар
+    # Перевіряємо, чи вже користувач залишив відгук на цей товар
     existing_review = Review.objects.filter(product=product, customer=customer).first()
     
     if request.method == 'POST':
@@ -588,7 +588,7 @@ def add_review(request, product_id):
     })
 
 
-# Удаление отзыва
+# Видалення відгуку
 def delete_review(request, review_id):
     review = get_object_or_404(Review, id=review_id)
     customer_id = request.session.get('customer_id')
@@ -609,7 +609,7 @@ def delete_review(request, review_id):
     return render(request, 'shop/delete_review.html', {'review': review})
 
 
-# Добавление ответа админом на отзыв
+# Додавання відповіді адміністратором на відгук
 def add_reply_to_review(request, review_id):
     review = get_object_or_404(Review, id=review_id)
     admin_id = request.session.get('customer_id')
@@ -619,7 +619,7 @@ def add_reply_to_review(request, review_id):
     
     admin = get_object_or_404(Customer, id=admin_id)
     
-    # Проверяем, является ли пользователь администратором
+    # Перевіряємо, чи є користувач адміністратором
     if not admin.is_admin:
         return redirect('shop:product_detail', product_id=review.product.id)
 
@@ -643,7 +643,7 @@ def add_reply_to_review(request, review_id):
     })
 
 
-# Удаление ответа админом
+# Видалення відповіді адміністратором
 def delete_reply(request, reply_id):
     reply = get_object_or_404(ReviewReply, id=reply_id)
     admin_id = request.session.get('customer_id')
@@ -653,7 +653,7 @@ def delete_reply(request, reply_id):
     
     admin = get_object_or_404(Customer, id=admin_id)
     
-    # Проверяем администраторские права
+    # Перевіряємо права адміністратора
     if not admin.is_admin:
         return redirect('shop:product_detail', product_id=reply.review.product.id)
     

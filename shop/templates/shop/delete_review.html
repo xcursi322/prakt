@@ -2,17 +2,17 @@
 {% block title %}Видалити відгук{% endblock %}
 
 {% block content %}
-<!-- Confirmation Dialog -->
+<!-- Діалог підтвердження -->
 <div class="max-w-md mx-auto mt-16 fade-in-up">
     <div class="bg-white rounded-2xl shadow-2xl p-8 border-4 border-red-200">
-        <!-- Icon -->
+        <!-- Іконка -->
         <div class="flex justify-center mb-6">
             <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
                 <i class="fas fa-exclamation-triangle text-3xl text-red-600"></i>
             </div>
         </div>
 
-        <!-- Message -->
+        <!-- Повідомлення -->
         <h1 class="text-2xl font-bold text-gray-900 text-center mb-2">Видалити відгук?</h1>
         <p class="text-gray-600 text-center mb-6">
             Ви впевнені, що хочете видалити ваш відгук про <strong>"{{ review.product.name }}"</strong>?
@@ -21,7 +21,7 @@
             Ця дія неможна буде скасувати.
         </p>
 
-        <!-- Buttons -->
+        <!-- Кнопки -->
         <div class="flex gap-4">
             <form method="post" class="flex-1">
                 {% csrf_token %}

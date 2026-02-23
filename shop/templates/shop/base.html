@@ -6,16 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SportShop - Спортивне харчування{% endblock %}</title>
 
-    <!-- Tailwind CDN -->
+    <!-- Підключення стилів -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Font -->
+    <!-- Шрифт -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Font Awesome Icons -->
+    <!-- Іконки Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Custom CSS -->
+    <!-- Власний CSS -->
     <link rel="stylesheet" href="{% static 'shop/style.css' %}">
 
     <script>
@@ -37,10 +37,10 @@
 
 <body class="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100 text-gray-900">
 
-<!-- HEADER -->
+<!-- ШАПКА -->
 <header class="bg-white header-shadow sticky top-0 z-30 transition-shadow">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
-        <!-- Logo -->
+        <!-- Логотип -->
         <a href="{% url 'shop:home' %}" class="flex items-center gap-3 group">
             <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center text-white font-bold text-lg group-hover:shadow-lg transition-shadow">
                 <i class="fas fa-dumbbell"></i>
@@ -48,7 +48,7 @@
             <span class="text-xl font-bold text-gray-900 hidden sm:inline group-hover:text-blue-600 transition">SportShop</span>
         </a>
 
-        <!-- Navigation -->
+        <!-- Навігація -->
         <nav class="hidden md:flex gap-8 text-sm font-medium">
             <a href="{% url 'shop:home' %}" class="text-gray-700 hover:text-blue-600 transition relative group">
                 <span>Головна</span>
@@ -64,19 +64,19 @@
             </a>
         </nav>
 
-        <!-- Right Actions -->
+        <!-- Дії праворуч -->
         <div class="flex gap-2 sm:gap-4 items-center">
             <button type="button" class="theme-toggle" data-theme-toggle aria-label="Змінити тему" title="Змінити тему">
                 <i class="fas fa-moon" data-theme-icon></i>
             </button>
 
-            <!-- Cart -->
+            <!-- Кошик -->
             <a href="{% url 'shop:cart' %}" class="relative group px-3 py-2 rounded-lg hover:bg-gray-100 transition" data-cart-icon>
                 <i class="fas fa-shopping-cart text-lg text-gray-700 group-hover:text-blue-600"></i>
                 <span data-cart-count class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ cart_count|default:0 }}</span>
             </a>
 
-            <!-- User Menu -->
+            <!-- Меню користувача -->
             {% if request.session.customer_id %}
                 <div class="relative">
                     <button class="dropdown-toggle flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-gray-700 hover:text-blue-600" title="Профіль">
@@ -114,18 +114,18 @@
     </div>
 </header>
 
-<!-- CONTENT -->
+<!-- КОНТЕНТ -->
 <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
     <div data-notifications></div>
     {% block content %}{% endblock %}
 </main>
 
-<!-- FOOTER -->
+<!-- ФУТЕР -->
 <footer class="bg-gradient-to-b from-gray-900 to-gray-950 text-gray-300 mt-16 border-t border-gray-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-        <!-- Top Section -->
+        <!-- Верхній блок -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12 pb-12 border-b border-gray-800">
-            <!-- Company Info -->
+            <!-- Інформація про компанію -->
             <div class="fade-in-up">
                 <div class="flex items-center gap-2 mb-4">
                     <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold">
@@ -138,7 +138,7 @@
                 </p>
             </div>
 
-            <!-- Links 1 -->
+            <!-- Посилання 1 -->
             <div class="fade-in-up">
                 <h4 class="font-bold text-white mb-4 flex items-center gap-2">
                     <i class="fas fa-link text-blue-500"></i> Про магазин
@@ -156,7 +156,7 @@
                 </ul>
             </div>
 
-            <!-- Links 2 -->
+            <!-- Посилання 2 -->
             <div class="fade-in-up">
                 <h4 class="font-bold text-white mb-4 flex items-center gap-2">
                     <i class="fas fa-headset text-blue-500"></i> Допомога
@@ -174,7 +174,7 @@
                 </ul>
             </div>
 
-            <!-- Contacts & Social -->
+            <!-- Контакти та соцмережі -->
             <div class="fade-in-up">
                 <h4 class="font-bold text-white mb-4 flex items-center gap-2">
                     <i class="fas fa-share-nodes text-blue-500"></i> Контакти
@@ -207,7 +207,7 @@
             </div>
         </div>
 
-        <!-- Bottom Section -->
+        <!-- Нижній блок -->
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
             <p class="text-sm text-gray-500">© 2026 SportShop. Всі права захищені.</p>
             <div class="flex gap-6 text-sm text-gray-500">
@@ -218,7 +218,7 @@
     </div>
 </footer>
 
-<!-- Main Scripts -->
+<!-- Основні скрипти -->
 <script src="{% static 'shop/filters.js' %}"></script>
 
 <script>

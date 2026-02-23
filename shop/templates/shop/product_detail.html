@@ -2,14 +2,14 @@
 {% block title %}{{ product.name }} - SportShop{% endblock %}
 
 {% block content %}
-<!-- Back Link -->
+<!-- Посилання назад -->
 <a href="{% url 'shop:catalog' %}" class="back-link text-blue-600 font-semibold mb-6 inline-flex items-center gap-2 hover:gap-3">
     <i class="fas fa-chevron-left"></i> Повернутись до каталогу
 </a>
 
-<!-- Product Section -->
+<!-- Блок товару -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 fade-in-up">
-    <!-- Product Image -->
+    <!-- Зображення товару -->
     <div class="flex items-center justify-center">
         <div class="w-full max-w-md bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl overflow-hidden shadow-lg">
             {% if product.image %}
@@ -25,9 +25,9 @@
         </div>
     </div>
 
-    <!-- Product Info -->
+    <!-- Інформація про товар -->
     <div class="flex flex-col justify-center fade-in-up">
-        <!-- Category Badge -->
+        <!-- Бейдж категорії -->
         {% if product.category %}
             <div class="inline-block w-fit mb-4">
                 <span class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full text-sm font-semibold text-blue-700">
@@ -36,12 +36,12 @@
             </div>
         {% endif %}
 
-        <!-- Title -->
+        <!-- Назва -->
         <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
             {{ product.name }}
         </h1>
 
-        <!-- Rating (Optional) -->
+        <!-- Рейтинг (необов'язково) -->
         <div class="flex items-center gap-3 mb-6">
             <div class="flex gap-1">
                 {% for i in "12345" %}
@@ -55,7 +55,7 @@
             <span class="text-gray-600 font-medium">({{ review_count }} відгуків)</span>
         </div>
 
-        <!-- Price Section -->
+        <!-- Блок ціни -->
         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 sm:p-8 mb-8 border-2 border-blue-200">
             <p class="text-gray-600 text-sm mb-2">Ціна:</p>
             <div class="flex items-baseline gap-4">
@@ -88,7 +88,7 @@
             {% endif %}
         </div>
 
-        <!-- Features (Optional) -->
+        <!-- Характеристики (необов'язково) -->
         <div class="mb-8 bg-gray-50 rounded-xl p-6">
             <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <i class="fas fa-list-check text-blue-600"></i> Особливості
@@ -109,11 +109,11 @@
             </ul>
         </div>
 
-        <!-- Add to Cart Form -->
+        <!-- Форма додавання в кошик -->
         <form method="post" action="{% url 'shop:add_to_cart' product.id %}" class="space-y-4">
             {% csrf_token %}
             
-            <!-- Quantity Selector -->
+            <!-- Вибір кількості -->
             <div class="flex items-center gap-4">
                 <label class="font-semibold text-gray-900">Кількість:</label>
                 <div class="flex items-center border-2 border-gray-300 rounded-lg">
@@ -124,7 +124,7 @@
                 </div>
             </div>
 
-            <!-- Add to Cart Button -->
+            <!-- Кнопка додавання в кошик -->
             {% if product.stock_quantity > 0 %}
                 <button type="submit" class="btn btn-primary w-full py-4 text-lg font-bold flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl">
                     <i class="fas fa-shopping-cart"></i> Додати в кошик
@@ -136,7 +136,7 @@
             {% endif %}
         </form>
 
-        <!-- Additional Info -->
+        <!-- Додаткова інформація -->
         <div class="mt-8 pt-8 border-t-2 border-gray-200">
             <div class="grid grid-cols-3 gap-4 text-center">
                 <div class="bg-blue-50 rounded-lg p-4">
@@ -156,7 +156,7 @@
     </div>
 </div>
 
-<!-- Description -->
+<!-- Опис -->
 <div class="mt-10 mb-6 fade-in-up">
     <h2 class="text-xl font-bold text-gray-900 mb-3">Опис</h2>
     <p class="text-gray-700 leading-relaxed text-lg">
@@ -164,7 +164,7 @@
     </p>
 </div>
 
-<!-- Reviews Section -->
+<!-- Блок відгуків -->
 <div class="mt-16 pt-16 border-t-2 border-gray-200 fade-in-up">
     <div class="flex items-center justify-between mb-8">
         <h2 class="text-3xl font-bold text-gray-900 flex items-center gap-2">
@@ -181,12 +181,12 @@
         {% endif %}
     </div>
 
-    <!-- Reviews List -->
+    <!-- Список відгуків -->
     <div class="space-y-6">
         {% if reviews %}
             {% for review in reviews %}
                 <div id="review-{{ review.id }}" class="bg-white rounded-xl border-2 border-gray-200 p-6 hover:shadow-lg transition">
-                    <!-- Review Header -->
+                    <!-- Заголовок відгуку -->
                     <div class="flex items-start justify-between mb-4">
                         <div>
                             <div class="flex items-center gap-3 mb-2">
@@ -223,7 +223,7 @@
                         {% endif %}
                     </div>
 
-                    <!-- Rating Stars -->
+                    <!-- Зірки рейтингу -->
                     <div class="flex items-center gap-2 mb-4">
                         <div class="flex gap-0.5">
                             {% for i in "12345" %}
@@ -237,10 +237,10 @@
                         <span class="font-bold text-gray-900 ml-2">{{ review.rating }}/5</span>
                     </div>
 
-                    <!-- Review Text -->
+                    <!-- Текст відгуку -->
                     <p class="text-gray-700 mb-6 leading-relaxed">{{ review.text }}</p>
 
-                    <!-- Admin Reply -->
+                    <!-- Відповідь адміністратора -->
                     {% if review.replies.all %}
                         <div class="bg-blue-50 rounded-lg p-4 mb-4 border-l-4 border-blue-600">
                             {% for reply in review.replies.all %}
@@ -264,7 +264,7 @@
                         </div>
                     {% endif %}
 
-                    <!-- Admin Reply Form -->
+                    <!-- Форма відповіді адміністратора -->
                     {% if is_admin %}
                         {% if not review.replies.all %}
                             <form method="post" action="{% url 'shop:add_reply' review.id %}" class="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">

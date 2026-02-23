@@ -1,14 +1,14 @@
-// === MODERN SPORT SHOP JAVASCRIPT ===
+// === СУЧАСНИЙ JAVASCRIPT ДЛЯ SPORT SHOP ===
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all features
+    // Ініціалізувати всі функції
     initializeFilters();
     initializeAnimations();
     initializeCartFeatures();
     initializeFormValidation();
 });
 
-// === FILTER FUNCTIONALITY ===
+// === ФУНКЦІОНАЛ ФІЛЬТРІВ ===
 function initializeFilters() {
     const categoryFilter = document.getElementById('categoryFilter');
     const sortFilter = document.getElementById('sortFilter');
@@ -93,9 +93,9 @@ function applyFilters() {
     });
 }
 
-// === ANIMATIONS ===
+// === АНІМАЦІЇ ===
 function initializeAnimations() {
-    // Observe elements for fade-in animations
+    // Відстежувати елементи для анімацій появи
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -110,17 +110,17 @@ function initializeAnimations() {
         });
     }, observerOptions);
 
-    // Observe product cards
+    // Відстежувати картки товарів
     document.querySelectorAll('.product-card').forEach(card => {
         observer.observe(card);
     });
 
-    // Observe form sections
+    // Відстежувати секції форми
     document.querySelectorAll('.form-group, .checkout-form').forEach(element => {
         observer.observe(element);
     });
 
-    // Smooth scroll for anchor links
+    // Плавна прокрутка для якірних посилань
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
@@ -135,9 +135,9 @@ function initializeAnimations() {
     });
 }
 
-// === CART FEATURES ===
+// === ФУНКЦІЇ КОШИКА ===
 function initializeCartFeatures() {
-    // Delegate add-to-cart clicks (in case buttons are re-rendered)
+    // Делегування кліків додавання в кошик (якщо кнопки перемальовуються)
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-add-to-cart-url]');
         if (btn) {
@@ -197,7 +197,7 @@ function handleAddToCart(e) {
             showNotification(errorData.message, 'error');
             return;
         }
-        // Fallback: navigate to add URL to ensure item is added
+        // Резервний варіант: перехід на add URL, щоб гарантовано додати товар
         window.location.href = addUrl;
     });
 }
@@ -346,14 +346,14 @@ function formatHryvnia(value) {
     return `${numericValue.toLocaleString('uk-UA')} ₴`;
 }
 
-// === FORM VALIDATION ===
+// === ВАЛІДАЦІЯ ФОРМИ ===
 function initializeFormValidation() {
     const forms = document.querySelectorAll('[data-validate]');
     
     forms.forEach(form => {
         form.addEventListener('submit', validateForm);
         
-        // Real-time validation
+        // Валідація в реальному часі
         form.querySelectorAll('input, select, textarea').forEach(field => {
             field.addEventListener('blur', validateField);
             field.addEventListener('change', validateField);
@@ -386,7 +386,7 @@ function validateField() {
     let isValid = true;
     let errorMessage = '';
 
-    // Remove previous error styling
+    // Прибрати попередні стилі помилки
     field.classList.remove('field-error');
     const existingError = field.parentElement.querySelector('.form-error');
     if (existingError) {
@@ -397,7 +397,7 @@ function validateField() {
         existingSuccess.remove();
     }
 
-    // Validation rules
+    // Правила валідації
     if (field.hasAttribute('required') && !value) {
         isValid = false;
         errorMessage = 'Це поле обов\'язкове';
@@ -415,7 +415,7 @@ function validateField() {
         errorMessage = 'Пароль повинен мати мінімум 6 символів';
     }
 
-    // Show error if invalid
+    // Показати помилку, якщо дані невалідні
     if (!isValid) {
         field.classList.add('field-error');
         const errorEl = document.createElement('div');
@@ -437,7 +437,7 @@ function isValidPhone(phone) {
     return regex.test(phone);
 }
 
-// === NOTIFICATIONS ===
+// === СПОВІЩЕННЯ ===
 function showNotification(message, type = 'info') {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -487,7 +487,7 @@ function showNotification(message, type = 'info') {
     setTimeout(closeToast, 3800);
 }
 
-// === DROPDOWN MENU ===
+// === ВИПАДНЕ МЕНЮ ===
 function setupDropdowns() {
     document.querySelectorAll('[data-dropdown-toggle]').forEach(toggle => {
         const menu = toggle.nextElementSibling;
@@ -506,10 +506,10 @@ function setupDropdowns() {
     });
 }
 
-// Initialize on load
+// Ініціалізувати під час завантаження
 document.addEventListener('DOMContentLoaded', setupDropdowns);
 
-// === UTILITY FUNCTIONS ===
+// === ДОПОМІЖНІ ФУНКЦІЇ ===
 function debounce(func, delay) {
     let timeout;
     return function(...args) {
