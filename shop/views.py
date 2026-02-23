@@ -3,7 +3,7 @@ from django.http import FileResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Avg
  
  
 from .models import Product, OrderItem, Category, Order, Customer, Review, ReviewReply
@@ -120,6 +120,15 @@ def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     reviews = product.reviews.select_related('customer').prefetch_related('replies')
     review_count = reviews.count()
+    rating_stats = reviews.aggregate(avg_rating=Avg('rating'))
+    avg_rating = rating_stats.get('avg_rating')
+    aggregate_avg_rating = int(round(avg_rating)) if avg_rating is not None else 0
+    min_delivery_cost = min(
+        _get_delivery_cost(product.price, 'np_branch'),
+        _get_delivery_cost(product.price, 'courier_kyiv')
+    )
+    delivery_is_free = min_delivery_cost == 0
+    related_products = Product.objects.exclude(id=product.id).order_by('-created_at')[:8]
     customer_id = request.session.get('customer_id')
     is_admin = False
     
@@ -134,6 +143,10 @@ def product_detail(request, product_id):
         'product': product,
         'reviews': reviews,
         'review_count': review_count,
+        'aggregate_avg_rating': aggregate_avg_rating,
+        'min_delivery_cost': min_delivery_cost,
+        'delivery_is_free': delivery_is_free,
+        'related_products': related_products,
         'customer_id': customer_id,
         'is_admin': is_admin
     })

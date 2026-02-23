@@ -1901,6 +1901,16 @@ body {
 	cursor: pointer;
 }
 
+.delivery-faq summary:focus {
+	outline: none;
+}
+
+.delivery-faq summary:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.45);
+	border-radius: 8px;
+}
+
 .delivery-faq p {
 	margin-top: 0.6rem;
 	color: #64748b;
@@ -1918,6 +1928,24 @@ body {
 	justify-content: space-between;
 	gap: 1.5rem;
 	box-shadow: 0 20px 36px rgba(249, 115, 22, 0.25);
+}
+
+html.theme-dark .delivery-faq details {
+	background: #ffffff;
+	border-color: #e2e8f0;
+	box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+html.theme-dark .delivery-faq summary {
+	color: #001027;
+}
+
+html.theme-dark .delivery-faq p {
+	color: #475569;
+}
+
+html.theme-dark .delivery-faq summary:focus-visible {
+	box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.55);
 }
 
 @media (max-width: 768px) {

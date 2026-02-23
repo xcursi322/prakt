@@ -45,7 +45,11 @@
         <div class="flex items-center gap-3 mb-6">
             <div class="flex gap-1">
                 {% for i in "12345" %}
-                    <i class="fas fa-star text-yellow-400 text-lg"></i>
+                    {% if forloop.counter <= aggregate_avg_rating %}
+                        <i class="fas fa-star text-yellow-400 text-lg"></i>
+                    {% else %}
+                        <i class="fas fa-star text-gray-300 text-lg"></i>
+                    {% endif %}
                 {% endfor %}
             </div>
             <span class="text-gray-600 font-medium">({{ review_count }} відгуків)</span>
@@ -64,9 +68,15 @@
                     </span>
                 {% endif %}
             </div>
-            <p class="text-green-600 font-bold mt-3 flex items-center gap-2">
-                <i class="fas fa-check-circle"></i> Безкоштовна доставка
-            </p>
+            {% if delivery_is_free %}
+                <p class="text-green-600 font-bold mt-3 flex items-center gap-2">
+                    <i class="fas fa-check-circle"></i> Безкоштовна доставка
+                </p>
+            {% else %}
+                <p class="text-blue-600 font-bold mt-3 flex items-center gap-2">
+                    <i class="fas fa-truck"></i> Доставка від {{ min_delivery_cost }} ₴
+                </p>
+            {% endif %}
             {% if product.stock_quantity > 0 %}
                 <p class="text-green-600 font-bold mt-3 flex items-center gap-2">
                     <i class="fas fa-box"></i> В наявності
@@ -76,14 +86,6 @@
                     <i class="fas fa-ban"></i> Товар закінчився
                 </p>
             {% endif %}
-        </div>
-
-        <!-- Description -->
-        <div class="mb-8">
-            <h2 class="text-xl font-bold text-gray-900 mb-3">Опис</h2>
-            <p class="text-gray-700 leading-relaxed text-lg">
-                {{ product.description }}
-            </p>
         </div>
 
         <!-- Features (Optional) -->
@@ -128,7 +130,7 @@
                     <i class="fas fa-shopping-cart"></i> Додати в кошик
                 </button>
             {% else %}
-                <button type="button" class="btn btn-secondary w-full py-4 text-lg font-bold opacity-70 cursor-not-allowed" disabled>
+                <button type="button" class="btn btn-secondary w-full py-4 text-lg font-bold opacity-70 cursor-not-allowed inline-flex items-center justify-center gap-2" disabled>
                     <i class="fas fa-ban"></i> Немає в наявності
                 </button>
             {% endif %}
@@ -154,6 +156,14 @@
     </div>
 </div>
 
+<!-- Description -->
+<div class="mt-10 mb-6 fade-in-up">
+    <h2 class="text-xl font-bold text-gray-900 mb-3">Опис</h2>
+    <p class="text-gray-700 leading-relaxed text-lg">
+        {{ product.description }}
+    </p>
+</div>
+
 <!-- Reviews Section -->
 <div class="mt-16 pt-16 border-t-2 border-gray-200 fade-in-up">
     <div class="flex items-center justify-between mb-8">
@@ -161,11 +171,11 @@
             <i class="fas fa-comments text-blue-600"></i> Відгуки та рейтинги
         </h2>
         {% if customer_id %}
-            <a href="{% url 'shop:add_review' product.id %}" class="btn btn-primary">
+            <a href="{% url 'shop:add_review' product.id %}" class="btn btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition">
                 <i class="fas fa-pen"></i> Залишити відгук
             </a>
         {% else %}
-            <a href="{% url 'shop:login' %}" class="btn btn-primary">
+            <a href="{% url 'shop:login' %}" class="btn btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition">
                 <i class="fas fa-sign-in-alt"></i> Увійти для відгуку
             </a>
         {% endif %}
@@ -291,25 +301,37 @@
     <h2 class="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-2">
         <i class="fas fa-heart text-blue-600"></i> Рекомендуємо також
     </h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="flex flex-wrap gap-4">
         {% for p in related_products|slice:":4" %}
-            <a href="{% url 'shop:product_detail' p.id %}" class="product-card group">
-                <div class="product-image-wrapper">
+            <a href="{% url 'shop:product_detail' p.id %}" class="product-card-perfect group" data-product-name="{{ p.name|lower }}">
+                <div class="product-card-perfect-imgwrap">
                     {% if p.image %}
-                        <img src="{{ p.image.url }}" alt="{{ p.name }}" class="product-image">
+                        <img src="{{ p.image.url }}" alt="{{ p.name }}" class="product-card-perfect-img" loading="lazy">
                     {% else %}
-                        <div class="w-full h-full bg-gray-200 flex items-center justify-center">
-                            <i class="fas fa-box text-gray-400 text-2xl"></i>
-                        </div>
+                        <div class="no-image"><i class="fas fa-box"></i></div>
                     {% endif %}
                 </div>
-                <div class="product-info">
-                    <h3 class="product-name">{{ p.name }}</h3>
-                    <div class="product-footer">
-                        <div class="product-price">{{ p.price }} ₴</div>
-                    </div>
+
+                <div class="product-card-perfect-title">{{ p.name }}</div>
+                <div class="text-sm text-gray-400 -mt-4 leading-relaxed">{{ p.description|truncatechars:60 }}</div>
+
+                <div class="flex items-baseline gap-2 mt-2">
+                    <div class="product-card-perfect-price">{{ p.price|floatformat:0 }} ГРН</div>
+                    {% if p.old_price %}
+                        <div class="text-sm text-gray-400 line-through">{{ p.old_price|floatformat:0 }} ГРН</div>
+                    {% endif %}
                 </div>
+
+                {% if p.stock_quantity > 0 %}
+                    <div class="text-sm text-green-600 font-semibold mt-1">В наявності</div>
+                {% else %}
+                    <div class="text-sm text-red-600 font-semibold mt-1">Товар закінчився</div>
+                {% endif %}
             </a>
+        {% empty %}
+            <div class="col-span-full text-center py-8 bg-gray-50 rounded-xl border border-gray-200">
+                <p class="text-gray-600">Поки що немає рекомендацій</p>
+            </div>
         {% endfor %}
     </div>
 </div>
