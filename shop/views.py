@@ -36,13 +36,20 @@ def _build_cart_update_payload(cart, product_id):
         if product.id == int(product_id):
             target_subtotal = subtotal
 
+    shipping_cost = _get_delivery_cost(total, 'np_branch')
+    grand_total = total + shipping_cost
+
     return {
         'success': True,
         'product_id': int(product_id),
         'quantity': target_quantity,
         'subtotal': float(target_subtotal),
         'total': float(total),
+        'shipping_cost': float(shipping_cost),
+        'grand_total': float(grand_total),
+        'free_shipping_threshold': 1500,
         'cart_count': cart_count,
+        'is_free_shipping': shipping_cost == 0,
         'removed': target_quantity <= 0,
         'empty': cart_count == 0,
     }
@@ -241,9 +248,16 @@ def cart(request):
 
         total += subtotal
 
+    shipping_cost = _get_delivery_cost(total, 'np_branch')
+    grand_total = total + shipping_cost
+
     return render(request, 'shop/cart.html', {
         'cart_items': cart_items,
-        'total': total
+        'total': total,
+        'shipping_cost': shipping_cost,
+        'grand_total': grand_total,
+        'free_shipping_threshold': 1500,
+        'is_free_shipping': shipping_cost == 0,
     })
 
 # Оформлення замовлення

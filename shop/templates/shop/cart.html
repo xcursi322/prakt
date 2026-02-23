@@ -99,17 +99,21 @@
                 <div class="mb-8">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-gray-700">Сума товарів:</span>
-                        <span class="font-semibold" data-cart-total-value>{{ total }} ₴</span>
+                        <span class="font-semibold" data-cart-subtotal-value>{{ total }} ₴</span>
                     </div>
                     <div class="flex justify-between items-center mb-4">
                         <span class="text-gray-700">Доставка:</span>
-                        <span class="text-green-600 font-bold">Безкоштовно</span>
+                        {% if is_free_shipping %}
+                            <span class="text-green-600 font-bold" data-cart-shipping-value>Безкоштовна доставка</span>
+                        {% else %}
+                            <span class="font-bold" data-cart-shipping-value>{{ shipping_cost }} ₴</span>
+                        {% endif %}
                     </div>
                     
                     <div class="border-t-2 border-blue-200 pt-4">
                         <div class="flex justify-between items-center">
                             <span class="text-lg font-bold text-gray-900">До сплати:</span>
-                            <span class="total-amount" data-cart-total-value>{{ total }} ₴</span>
+                            <span class="total-amount" data-cart-grand-total-value>{{ grand_total }} ₴</span>
                         </div>
                     </div>
                 </div>

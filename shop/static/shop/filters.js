@@ -312,8 +312,26 @@ function applyCartUpdate(data) {
         }
     }
 
-    document.querySelectorAll('[data-cart-total-value]').forEach(el => {
+    document.querySelectorAll('[data-cart-subtotal-value]').forEach(el => {
         el.textContent = formatHryvnia(data.total);
+    });
+
+    const shippingElement = document.querySelector('[data-cart-shipping-value]');
+    if (shippingElement) {
+        const shippingCost = Number(data.shipping_cost) || 0;
+        const isFreeShipping = Boolean(data.is_free_shipping);
+
+        if (isFreeShipping) {
+            shippingElement.textContent = 'Безкоштовна доставка';
+            shippingElement.classList.add('text-green-600');
+        } else {
+            shippingElement.textContent = formatHryvnia(shippingCost);
+            shippingElement.classList.remove('text-green-600');
+        }
+    }
+
+    document.querySelectorAll('[data-cart-grand-total-value]').forEach(el => {
+        el.textContent = formatHryvnia(data.grand_total);
     });
 
     const cartCount = document.querySelector('[data-cart-count]');
