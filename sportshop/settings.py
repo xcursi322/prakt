@@ -24,7 +24,6 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-only-key')
 
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
