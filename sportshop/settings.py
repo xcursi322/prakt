@@ -20,17 +20,13 @@ try:
 except ImportError:
     dj_database_url = None
 
-# Формуємо шляхи всередині проєкту так: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Налаштування для швидкого старту розробки — не підходять для продакшену
-# Див. https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# ПОПЕРЕДЖЕННЯ БЕЗПЕКИ: тримайте секретний ключ продакшену в таємниці!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-only-key')
 
-# ПОПЕРЕДЖЕННЯ БЕЗПЕКИ: не вмикайте debug у продакшені!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = [
@@ -145,9 +141,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Інтернаціоналізація
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 
