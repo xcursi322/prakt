@@ -1,0 +1,102 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'shop/admin_statistics.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="period-switch">
+  <a href="?period=day" class="period-link {% if selected_period == 'day' %}active{% endif %}">День</a>
+  <a href="?period=week" class="period-link {% if selected_period == 'week' %}active{% endif %}">Тиждень</a>
+  <a href="?period=month" class="period-link {% if selected_period == 'month' %}active{% endif %}">Місяць</a>
+  <a href="?period=year" class="period-link {% if selected_period == 'year' %}active{% endif %}">Рік</a>
+</div>
+
+{% if selected_period == 'month' %}
+  <form method="get" class="month-picker">
+    <input type="hidden" name="period" value="month">
+    <select name="month_num" aria-label="Місяць">
+      {% for option in ukr_month_options %}
+        <option value="{{ option.value }}" {% if option.value == selected_month_num %}selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+    <select name="year" aria-label="Рік">
+      {% for year in year_options %}
+        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Показати</button>
+  </form>
+{% endif %}
+
+<div class="stats-grid">
+  <div class="stats-card">
+    <div class="stats-label">Відвідування за {{ period_label }}</div>
+    <div class="stats-value">{{ total_visits }}</div>
+  </div>
+  <div class="stats-card">
+    <div class="stats-label">Відвідування зареєстрованих за {{ period_label }}</div>
+    <div class="stats-value">{{ registered_visits }}</div>
+  </div>
+  <div class="stats-card">
+    <div class="stats-label">Замовлення за {{ period_label }}</div>
+    <div class="stats-value">{{ total_orders }}</div>
+  </div>
+  <div class="stats-card">
+    <div class="stats-label">Виручка за {{ period_label }}</div>
+    <div class="stats-value">{{ total_revenue|floatformat:2 }} ₴</div>
+  </div>
+  <div class="stats-card">
+    <div class="stats-label">Унікальні зареєстровані користувачі</div>
+    <div class="stats-value">{{ registered_users_count }}</div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <h2 class="chart-title">Відвідуваність і замовлення ({{ period_label }})</h2>
+    <div class="chart-canvas">
+      <canvas id="visitsOrdersChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h2 class="chart-title">Виручка ({{ period_label }})</h2>
+    <div class="chart-canvas">
+      <canvas id="revenueChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h2 class="chart-title">Замовлення за статусами ({{ period_label }})</h2>
+    <div class="chart-canvas">
+      <canvas id="statusChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h2 class="chart-title">Топ-5 товарів ({{ period_label }})</h2>
+    {% if top_products %}
+      <ol class="products-list">
+        {% for item in top_products %}
+          <li>{{ item.product__name }} — {{ item.total_qty }} шт.</li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p>Поки що немає даних.</p>
+    {% endif %}
+  </div>
+</div>
+
+{{ chart_labels|json_script:"chart-labels" }}
+{{ visits_series|json_script:"visits-series" }}
+{{ orders_series|json_script:"orders-series" }}
+{{ revenue_series|json_script:"revenue-series" }}
+{{ status_labels|json_script:"status-labels" }}
+{{ status_values|json_script:"status-values" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'shop/admin_statistics.js' %}"></script>
+{% endblock %}

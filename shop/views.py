@@ -3,7 +3,7 @@ from django.http import FileResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.db import transaction
-from django.db.models import F, Avg
+from django.db.models import F, Avg, Sum
  
  
 from .models import Product, OrderItem, Category, Order, Customer, Review, ReviewReply
@@ -56,7 +56,24 @@ def _build_cart_update_payload(cart, product_id):
 
 # Головна сторінка (вітальна)
 def home(request):
-    featured_products = Product.objects.all()[:6]  # Показуємо 6 найкращих товарів
+    popular_products = list(
+        Product.objects
+        .annotate(total_sold=Sum('orderitem__quantity'))
+        .filter(total_sold__gt=0)
+        .order_by('-total_sold', '-created_at')[:6]
+    )
+
+    if len(popular_products) < 6:
+        existing_ids = [product.id for product in popular_products]
+        fallback_products = list(
+            Product.objects
+            .exclude(id__in=existing_ids)
+            .order_by('-created_at')[: 6 - len(popular_products)]
+        )
+        featured_products = popular_products + fallback_products
+    else:
+        featured_products = popular_products
+
     return render(request, 'shop/home.html', {
         'featured_products': featured_products
     })

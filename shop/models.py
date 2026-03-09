@@ -129,6 +129,23 @@ class OrderItem(models.Model):
         return f"{self.product.name} x {self.quantity or 0}"
 
 
+class SiteVisit(models.Model):
+    visit_date = models.DateField(auto_now_add=True)
+    session_key = models.CharField(max_length=64)
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Відвідування сайту'
+        verbose_name_plural = 'Відвідування сайту'
+        constraints = [
+            models.UniqueConstraint(fields=['visit_date', 'session_key'], name='unique_daily_session_visit')
+        ]
+
+    def __str__(self):
+        return f"{self.visit_date} - {self.session_key}"
+
+
 class Review(models.Model):
     RATING_CHOICES = [
         (1, '1 - Дуже погано'),

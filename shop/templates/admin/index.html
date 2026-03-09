@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div id="content-main">
+  <div class="module" style="margin-bottom: 16px;">
+    <table>
+      <caption>
+        <a href="{% url 'admin:shop_admin_statistics' %}" class="section" title="Перейти до графіків та метрик">
+          Статистика магазину
+        </a>
+      </caption>
+      <tbody>
+        <tr>
+          <th scope="row">
+            <a href="{% url 'admin:shop_admin_statistics' %}">Відкрити дашборд</a>
+          </th>
+          <td>Графіки відвідуваності, замовлень, виручки та статусів.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% if app_list %}
+    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+  {% else %}
+    <p>{% translate 'You don’t have permission to view or edit anything.' %}</p>
+  {% endif %}
+</div>
+{% endblock %}
