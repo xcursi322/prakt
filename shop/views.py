@@ -71,21 +71,21 @@ def _build_cart_update_payload(cart, product_id):
         'empty': cart_count == 0,
     }
 
-# Головна сторінка (вітальна)
+# Головна сторінка
 def home(request):
     popular_products = list(
         Product.objects
         .annotate(total_sold=Sum('orderitem__quantity'))
         .filter(total_sold__gt=0)
-        .order_by('-total_sold', '-created_at')[:6]
+        .order_by('-total_sold', '-created_at')[:3]
     )
 
-    if len(popular_products) < 6:
+    if len(popular_products) < 3:
         existing_ids = [product.id for product in popular_products]
         fallback_products = list(
             Product.objects
             .exclude(id__in=existing_ids)
-            .order_by('-created_at')[: 6 - len(popular_products)]
+            .order_by('-created_at')[: 3 - len(popular_products)]
         )
         featured_products = popular_products + fallback_products
     else:
@@ -115,7 +115,6 @@ def catalog(request):
     if category_id:
         try:
             selected_category = Category.objects.get(id=category_id)
-            # Якщо вибрана батьківська категорія, показати товари з всіх підкатегорій
             if selected_category.is_parent():
                 all_subcategories = selected_category.get_all_subcategories()
                 category_ids = [selected_category.id] + [cat.id for cat in all_subcategories]
@@ -626,7 +625,6 @@ def increase_quantity(request, product_id):
     else:
         flavor_id = request.GET.get('flavor_id')
     
-    # Формируем ключ
     if flavor_id:
         cart_key = f"{product_id}_{flavor_id}"
     else:
