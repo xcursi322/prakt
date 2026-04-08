@@ -1,0 +1,45 @@
+{% extends 'shop/base.html' %}
+{% block title %}Перехід до оплати{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center fade-in-up">
+    <div class="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full shadow-lg mb-6">
+            <i class="fas fa-credit-card text-white text-4xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Переходимо до оплати</h1>
+        <p class="text-gray-600 mb-2">Замовлення <span class="font-bold text-blue-600">#{{ order.id }}</span></p>
+        <p class="text-3xl font-bold text-blue-600 mb-6">{{ order.total }} ₴</p>
+        <p class="text-gray-500 text-sm mb-8">Зараз ви будете переспрямовані на безпечну сторінку оплати LiqPay...</p>
+
+        <!-- Індикатор завантаження -->
+        <div class="flex justify-center mb-6">
+            <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+        </div>
+
+        <!-- Auto-submit form до LiqPay -->
+        <form id="liqpay-form" method="POST" action="{{ liqpay.action_url }}">
+            <input type="hidden" name="data" value="{{ liqpay.data }}">
+            <input type="hidden" name="signature" value="{{ liqpay.signature }}">
+            <button type="submit" class="btn btn-primary w-full py-3 font-bold text-lg">
+                <i class="fas fa-lock mr-2"></i> Перейти до оплати
+            </button>
+        </form>
+
+        <p class="text-xs text-gray-400 mt-6">
+            <i class="fas fa-shield-alt text-green-500 mr-1"></i>
+            Безпечна оплата через LiqPay &middot; SSL-захист
+        </p>
+    </div>
+</div>
+
+<script>
+    // Автоматично відправляємо форму через 1 секунду
+    setTimeout(function () {
+        document.getElementById('liqpay-form').submit();
+    }, 1000);
+</script>
+{% endblock %}

@@ -8,6 +8,13 @@ STATUS_CHOICES = [
     ('completed', 'Виконано'),
 ]
 
+PAYMENT_STATUS_CHOICES = [
+    ('pending', 'Очікує оплати'),
+    ('paid', 'Оплачено'),
+    ('failed', 'Помилка оплати'),
+    ('cod', 'Оплата при отриманні'),
+]
+
 DELIVERY_METHOD_CHOICES = [
     ('np_branch', 'Відділення НП'),
     ('courier_kyiv', 'Курʼєр по Києву'),
@@ -42,25 +49,40 @@ class Customer(models.Model):
 class Category(models.Model):
     name = models.CharField(max_length=200)  # Назва категорії
     description = models.TextField(blank=True)  # Опис категорії
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='subcategories',
+        help_text='Виберіть батьківську категорію (якщо це підкатегорія)'
+    )  # Батьківська категорія для підкатегорій
     
     class Meta:
         verbose_name_plural = "Categories"
     
     def __str__(self):
+        if self.parent:
+            return f"{self.parent.name} → {self.name}"
         return self.name
+    
+    def is_parent(self):
+        """Перевіряє, чи є категорія батьківською"""
+        return self.subcategories.exists()
+    
+    def get_all_subcategories(self):
+        """Отримує всі підкатегорії рекурсивно"""
+        subcats = list(self.subcategories.all())
+        for subcat in self.subcategories.all():
+            subcats.extend(subcat.get_all_subcategories())
+        return subcats
 
 
 class Product(models.Model):
     name = models.CharField(max_length=200)       # Назва товару
-    brand = models.CharField(max_length=100, default="ALLNUTRITION", blank=True)  # Бренд
-    weight = models.PositiveIntegerField(default=0, help_text="Вес в граммах")
     price = models.DecimalField(max_digits=10, decimal_places=2)  # Ціна
-    old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Старая цена")
-    discount = models.PositiveIntegerField(default=0, help_text="Скидка в процентах")
-    is_gift = models.BooleanField(default=False, help_text="Подарунок")
-    is_bestseller = models.BooleanField(default=False, help_text="Bestseller")
-    rating_count = models.PositiveIntegerField(default=0, help_text="Количество отзывов/рейтинг")
-    stock_quantity = models.PositiveIntegerField(default=50, help_text="Кількість в наявності")
+    old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Стара ціна")
+    stock_quantity = models.PositiveIntegerField(default=0, help_text="Кількість в наявності (використовується тільки якщо немає смаків)")
     description = models.TextField()              # Опис
     image = models.ImageField(upload_to='products/', blank=True, null=True)  # Зображення
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')  # Категорія
@@ -68,15 +90,28 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def get_available_stock(self):
+        """Отримати доступне кількість товару на основі смаків або загального stock_quantity"""
+        from django.db.models import Sum
+        if self.flavors.exists():
+            total = self.flavors.aggregate(total=Sum('stock_quantity'))['total'] or 0
+            return total
+        # Якщо немає смаків — повертаємо загальне кількість з поля
+        return self.stock_quantity
 
 
 class CartItem(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    flavor = models.ForeignKey('ProductFlavor', on_delete=models.SET_NULL, null=True, blank=True, related_name='cart_items')
     quantity = models.PositiveIntegerField(default=1)
 
     def total_price(self):
         return self.product.price * self.quantity
+    
+    class Meta:
+        unique_together = ['customer', 'product', 'flavor']
     
 class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
@@ -90,6 +125,7 @@ class Order(models.Model):
     postal_branch = models.CharField(max_length=100, blank=True)
     delivery_method = models.CharField(max_length=20, choices=DELIVERY_METHOD_CHOICES, default='np_branch', blank=True)
     payment_method = models.CharField(max_length=20, blank=True)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
     total = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
@@ -116,6 +152,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey('Product', on_delete=models.CASCADE)
+    flavor = models.ForeignKey('ProductFlavor', on_delete=models.SET_NULL, null=True, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
@@ -126,6 +163,8 @@ class OrderItem(models.Model):
         return qty * prc
 
     def __str__(self):
+        if self.flavor:
+            return f"{self.product.name} ({self.flavor.flavor.name}) x {self.quantity or 0}"
         return f"{self.product.name} x {self.quantity or 0}"
 
 
@@ -185,3 +224,37 @@ class ReviewReply(models.Model):
     
     def __str__(self):
         return str(f"Reply to review {self.review.id}")
+
+
+class Flavor(models.Model):
+    name = models.CharField(max_length=100, unique=True)  
+    description = models.TextField(blank=True)  
+    hex_color = models.CharField(
+        max_length=7,
+        default='#9CA3AF'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class ProductFlavor(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='flavors')
+    flavor = models.ForeignKey(Flavor, on_delete=models.CASCADE)
+    stock_quantity = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['product', 'flavor']
+        ordering = ['flavor__name']
+
+    def __str__(self):
+        return f"{self.product.name} - {self.flavor.name} ({self.stock_quantity} у наявності)"
+    
+    def is_in_stock(self):
+        return self.stock_quantity > 0

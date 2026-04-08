@@ -24,9 +24,16 @@
             <select id="categoryFilter" class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition font-medium bg-white hover:border-blue-300">
                 <option value="">Всі категорії</option>
                 {% for category in categories %}
-                    <option value="{{ category.id }}" {% if selected_category_id|stringformat:"s" == category.id|stringformat:"s" %}selected{% endif %}>
-                        {{ category.name }}
-                    </option>
+                    <optgroup label="{{ category.name }}">
+                        <option value="{{ category.id }}" {% if selected_category_id|stringformat:"s" == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }} (всі товари)
+                        </option>
+                        {% for subcategory in category.subcategories.all %}
+                            <option value="{{ subcategory.id }}" {% if selected_category_id|stringformat:"s" == subcategory.id|stringformat:"s" %}selected{% endif %}>
+                                {{ subcategory.name }}
+                            </option>
+                        {% endfor %}
+                    </optgroup>
                 {% endfor %}
             </select>
         </div>

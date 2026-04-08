@@ -95,6 +95,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'shop.context_processors.cart_count',
+                'shop.context_processors.global_categories',
             ],
         },
     },
@@ -189,6 +190,11 @@ else:
             'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
         },
     }
+
+# LiqPay
+LIQPAY_PUBLIC_KEY = os.getenv('LIQPAY_PUBLIC_KEY', 'sandbox_i58608355309')
+LIQPAY_PRIVATE_KEY = os.getenv('LIQPAY_PRIVATE_KEY', 'sandbox_fKVzknbI4RbywKM0M3jw6CJnFsaHIH51eNA2PtIX')
+LIQPAY_SANDBOX = os.getenv('LIQPAY_SANDBOX', 'True').lower() == 'true'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 

@@ -18,7 +18,7 @@
         <div class="lg:col-span-2">
             <div class="cart-items space-y-4">
                 {% for item in cart_items %}
-                    <div class="cart-item cart-item-card" data-cart-item data-product-id="{{ item.product.id }}" data-price="{{ item.product.price }}" data-quantity="{{ item.quantity }}">
+                    <div class="cart-item cart-item-card" data-cart-item data-product-id="{{ item.product.id }}" {% if item.flavor %}data-flavor-id="{{ item.product_flavor.id }}"{% endif %} data-price="{{ item.product.price }}" data-quantity="{{ item.quantity }}">
                         <!-- Зображення товару -->
                         {% if item.product.image %}
                             <img src="{{ item.product.image.url }}"
@@ -33,6 +33,15 @@
                         <!-- Деталі товару -->
                         <div class="cart-item-details flex-1">
                             <h3 class="item-name cart-item-title">{{ item.product.name }}</h3>
+                            
+                            <!-- Вкус если выбран -->
+                            {% if item.flavor %}
+                                <p class="item-flavor cart-item-meta">
+                                    <span class="inline-block w-3 h-3 rounded-full mr-2" style="background-color: {{ item.flavor.hex_color }};"></span>
+                                    Вкус: <span class="font-semibold">{{ item.flavor.name }}</span>
+                                </p>
+                            {% endif %}
+                            
                             <p class="item-quantity cart-item-meta">Кількість: <span class="font-semibold" data-item-qty>{{ item.quantity }}</span></p>
                             
                             <!-- Ціна за одиницю -->
@@ -43,7 +52,7 @@
 
                         <!-- Керування кількістю -->
                         <div class="cart-qty-controls">
-                                     <a href="{% url 'shop:decrease_quantity' item.product.id %}"
+                                     <a href="{% url 'shop:decrease_quantity' item.product.id %}{% if item.flavor %}?flavor_id={{ item.product_flavor.id }}{% endif %}"
                                          class="cart-qty-btn" title="Зменшити кількість" data-cart-action="decrease">
                                 <i class="fas fa-minus"></i>
                             </a>
@@ -52,7 +61,7 @@
                                 {{ item.quantity }}
                             </span>
 
-                                     <a href="{% url 'shop:increase_quantity' item.product.id %}"
+                                     <a href="{% url 'shop:increase_quantity' item.product.id %}{% if item.flavor %}?flavor_id={{ item.product_flavor.id }}{% endif %}"
                                          class="cart-qty-btn" title="Збільшити кількість" data-cart-action="increase">
                                 <i class="fas fa-plus"></i>
                             </a>
@@ -61,7 +70,7 @@
                         <!-- Проміжна сума та видалення -->
                         <div class="cart-item-actions">
                                      <p class="item-subtotal cart-item-subtotal" data-item-subtotal>{{ item.subtotal }} ₴</p>
-                            <a href="{% url 'shop:remove_from_cart' item.product.id %}"
+                            <a href="{% url 'shop:remove_from_cart' item.product.id %}{% if item.flavor %}?flavor_id={{ item.product_flavor.id }}{% endif %}"
                                          class="cart-remove" aria-label="Видалити товар" data-cart-action="remove">
                                 <i class="fas fa-trash-alt"></i> Видалити
                             </a>
@@ -88,8 +97,16 @@
                 <!-- Розбивка вартості -->
                 <div class="space-y-4 mb-6 pb-6 border-b-2 border-gray-200">
                     {% for item in cart_items %}
-                        <div class="flex justify-between text-sm text-gray-600" data-summary-row data-product-id="{{ item.product.id }}">
-                            <span>{{ item.product.name }} (x<span data-summary-qty>{{ item.quantity }}</span>)</span>
+                        <div class="flex justify-between text-sm text-gray-600" data-summary-row data-product-id="{{ item.product.id }}" {% if item.flavor %}data-flavor-id="{{ item.product_flavor.id }}"{% endif %}>
+                            <div>
+                                <div>{{ item.product.name }} (x<span data-summary-qty>{{ item.quantity }}</span>)</div>
+                                {% if item.flavor %}
+                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                        <span class="inline-block w-2 h-2 rounded-full" style="background-color: {{ item.flavor.hex_color }};"></span>
+                                        {{ item.flavor.name }}
+                                    </div>
+                                {% endif %}
+                            </div>
                             <span class="font-semibold" data-summary-subtotal>{{ item.subtotal }} ₴</span>
                         </div>
                     {% endfor %}

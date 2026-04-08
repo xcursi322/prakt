@@ -26,4 +26,8 @@ urlpatterns = [
     path('review/<int:review_id>/delete/', views.delete_review, name='delete_review'),
     path('review/<int:review_id>/reply/', views.add_reply_to_review, name='add_reply'),
     path('reply/<int:reply_id>/delete/', views.delete_reply, name='delete_reply'),
+    # LiqPay
+    path('payment/<int:order_id>/', views.liqpay_pay, name='liqpay_pay'),
+    path('payment/callback/', views.liqpay_callback, name='liqpay_callback'),
+    path('payment/<int:order_id>/result/', views.liqpay_result, name='liqpay_result'),
 ]

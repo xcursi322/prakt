@@ -8,7 +8,7 @@ from django.urls import path
 from datetime import date, datetime, time, timedelta
 from django.utils import timezone
 
-from .models import Product, Order, OrderItem, Category, Customer, Review, ReviewReply, SiteVisit, STATUS_CHOICES
+from .models import Product, Order, OrderItem, Category, Customer, Review, ReviewReply, SiteVisit, STATUS_CHOICES, Flavor, ProductFlavor
 
 
 UKR_MONTHS = {
@@ -322,7 +322,33 @@ def _extend_admin_app_list(existing_get_app_list):
 
 admin.site.get_app_list = _extend_admin_app_list(admin.site.get_app_list)
 
-admin.site.register(Category)
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('display_name', 'is_parent')
+    list_filter = ('parent',)
+    search_fields = ('name', 'description')
+    fieldsets = (
+        ('Основна інформація', {
+            'fields': ('name', 'description')
+        }),
+        ('Категорія', {
+            'fields': ('parent',),
+            'description': 'Виберіть батьківську категорію, якщо це підкатегорія. Залиште пусто для головної категорії.'
+        }),
+    )
+    
+    def display_name(self, obj):
+        if obj.parent:
+            return f"  {obj.name}"
+        return f"• {obj.name}"
+    display_name.short_description = 'Назва'
+    
+    def is_parent(self, obj):
+        if obj.is_parent():
+            return "Батьківська"
+        return "Дочірня"
+    is_parent.short_description = 'Статус'
 
 
 @admin.register(SiteVisit)
@@ -404,19 +430,36 @@ class CustomerAdmin(admin.ModelAdmin):
         }),
     )
 
+
+class ProductFlavorInline(admin.TabularInline):
+    model = ProductFlavor
+    extra = 1
+    fields = ('flavor', 'stock_quantity')
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'old_price', 'stock_quantity', 'category', 'created_at')
+    list_display = ('name', 'price', 'old_price', 'display_available_stock', 'category', 'created_at')
     list_filter = ('category', 'created_at')
     search_fields = ('name', 'description')
-    fields = ('name', 'price', 'old_price', 'stock_quantity', 'description', 'category', 'image')
+    fields = ('name', 'price', 'old_price', 'display_available_stock', 'description', 'category', 'image')
+    readonly_fields = ('display_available_stock',)
+    inlines = [ProductFlavorInline]
+
+    def display_available_stock(self, obj):
+        stock = obj.get_available_stock()
+        flavors_exist = obj.flavors.exists()
+        if flavors_exist:
+            return f'{stock} шт.'
+        return f'{stock} шт.'
+    display_available_stock.short_description = 'Кількість в наявності'
 
 # Щоб бачити товари всередині замовлення прямо в адмінці
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    readonly_fields = ('product', 'quantity', 'price', 'total_price')
-    fields = ('product', 'quantity', 'price', 'total_price')
+    readonly_fields = ('product', 'quantity', 'price', 'flavor', 'total_price')
+    fields = ('product', 'flavor', 'quantity', 'price', 'total_price')
 
 
 @admin.register(Order)
@@ -473,10 +516,10 @@ class ReviewReplyInline(admin.TabularInline):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ('title', 'product', 'customer', 'rating', 'is_verified_purchase', 'created_at')
-    list_filter = ('rating', 'created_at', 'is_verified_purchase')
+    list_display = ('title', 'product', 'customer', 'rating')
+    list_filter = ('rating',)
     search_fields = ('title', 'text', 'product__name', 'customer__username')
-    readonly_fields = ('customer', 'product', 'created_at', 'updated_at')
+    readonly_fields = ('customer', 'product')
     inlines = [ReviewReplyInline]
     fieldsets = (
         ('Основна інформація', {
@@ -484,10 +527,6 @@ class ReviewAdmin(admin.ModelAdmin):
         }),
         ('Вміст', {
             'fields': ('text',)
-        }),
-        ('Додатково', {
-            'fields': ('is_verified_purchase', 'helpful_count', 'created_at', 'updated_at'),
-            'classes': ('collapse',)
         }),
     )
 
@@ -499,3 +538,30 @@ class ReviewReplyAdmin(admin.ModelAdmin):
     list_filter = ('created_at',)
     search_fields = ('text', 'review__title', 'admin__username')
     readonly_fields = ('review', 'created_at', 'updated_at')
+
+
+@admin.register(Flavor)
+class FlavorAdmin(admin.ModelAdmin):
+    list_display = ('name', 'hex_color')
+    search_fields = ('name',)
+    fieldsets = (
+        ('Основна інформація', {
+            'fields': ('name', 'hex_color', 'description')
+        }),
+    )
+
+
+@admin.register(ProductFlavor)
+class ProductFlavorAdmin(admin.ModelAdmin):
+    list_display = ('product', 'flavor', 'stock_quantity', 'is_in_stock')
+    list_filter = ('product', 'flavor')
+    search_fields = ('product__name', 'flavor__name')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        ('Основна інформація', {
+            'fields': ('product', 'flavor', 'stock_quantity')
+        }),
+        ('Дати', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )

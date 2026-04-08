@@ -77,9 +77,9 @@
                     <i class="fas fa-truck"></i> Доставка від {{ min_delivery_cost }} ₴
                 </p>
             {% endif %}
-            {% if product.stock_quantity > 0 %}
+            {% if available_stock > 0 %}
                 <p class="text-green-600 font-bold mt-3 flex items-center gap-2">
-                    <i class="fas fa-box"></i> В наявності
+                    <i class="fas fa-box"></i> В наявності ({{ available_stock }} шт.)
                 </p>
             {% else %}
                 <p class="text-red-600 font-bold mt-3 flex items-center gap-2">
@@ -113,19 +113,53 @@
         <form method="post" action="{% url 'shop:add_to_cart' product.id %}" class="space-y-4">
             {% csrf_token %}
             
+            {% if product_flavors %}
+                <div class="space-y-3">
+                    <label class="font-semibold text-gray-900 block">Вибір смаку:</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {% for pf in product_flavors %}
+                            {% if pf.is_in_stock %}
+                                <label class="relative">
+                                    <input type="radio" name="flavor_id" value="{{ pf.id }}" class="sr-only peer flavor-radio" data-flavor-stock="{{ pf.stock_quantity }}">
+                                    <div class="p-3 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-blue-400 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition flex items-center gap-2">
+                                        <div class="w-5 h-5 rounded-full" style="background-color: {{ pf.flavor.hex_color }};"></div>
+                                        <span class="text-sm font-medium text-gray-800">{{ pf.flavor.name }}</span>
+                                    </div>
+                                </label>
+                            {% else %}
+                                <div class="p-3 rounded-lg border-2 border-gray-200 opacity-50 cursor-not-allowed flex items-center gap-2">
+                                    <div class="w-5 h-5 rounded-full" style="background-color: {{ pf.flavor.hex_color }};"></div>
+                                    <span class="text-sm font-medium text-gray-500">{{ pf.flavor.name }}</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <span class="flavor-stock-text">Оберіть вкус</span>
+                    </p>
+                </div>
+            {% endif %}
+            
             <!-- Вибір кількості -->
             <div class="flex items-center gap-4">
                 <label class="font-semibold text-gray-900">Кількість:</label>
                 <div class="flex items-center border-2 border-gray-300 rounded-lg">
-                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold" {% if product.stock_quantity <= 0 %}disabled{% endif %}>−</button>
-                    <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}" {% if product.stock_quantity <= 0 %}disabled{% endif %}
+                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold quantity-decrease" {% if available_stock <= 0 %}disabled{% endif %}>−</button>
+                    <input type="number" name="quantity" value="1" min="1" max="{{ available_stock }}" {% if available_stock <= 0 %}disabled{% endif %}
                            class="w-16 text-center font-bold border-0 focus:ring-0" data-quantity-input>
-                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold" {% if product.stock_quantity <= 0 %}disabled{% endif %}>+</button>
+                    <button type="button" class="px-4 py-2 text-gray-600 hover:text-gray-900 text-lg font-bold quantity-increase" {% if available_stock <= 0 %}disabled{% endif %}>+</button>
                 </div>
             </div>
 
+            <!-- Повідомлення про вибір смаку -->
+            {% if product_flavors %}
+                <p id="flavor-error" class="hidden text-red-600 text-sm font-semibold flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle"></i> Будь ласка, оберіть смак перед додаванням у кошик
+                </p>
+            {% endif %}
+
             <!-- Кнопка додавання в кошик -->
-            {% if product.stock_quantity > 0 %}
+            {% if available_stock > 0 %}
                 <button type="submit" class="btn btn-primary w-full py-4 text-lg font-bold flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl">
                     <i class="fas fa-shopping-cart"></i> Додати в кошик
                 </button>
@@ -216,11 +250,18 @@
                                 <time>{{ review.created_at|date:"d.m.Y" }}</time>
                             </p>
                         </div>
-                        {% if is_admin %}
-                            <a href="{% url 'shop:delete_review' review.id %}" class="text-red-500 hover:text-red-700 font-semibold text-sm">
-                                <i class="fas fa-trash"></i>
-                            </a>
-                        {% endif %}
+                        <div class="flex items-center gap-3">
+                            {% if customer_id and review.customer.id == customer_id %}
+                                <a href="{% url 'shop:add_review' review.product.id %}?edit=1" class="text-blue-500 hover:text-blue-700 font-semibold text-sm flex items-center gap-1">
+                                    <i class="fas fa-pen"></i> Редагувати
+                                </a>
+                            {% endif %}
+                            {% if is_admin %}
+                                <a href="{% url 'shop:delete_review' review.id %}" class="text-red-500 hover:text-red-700 font-semibold text-sm">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <!-- Зірки рейтингу -->
@@ -280,8 +321,8 @@
                                     required
                                     class="w-full p-3 rounded-lg border-2 border-blue-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition"
                                     placeholder="Напишіть відповідь на відгук..."></textarea>
-                                <button type="submit" class="btn btn-primary text-sm">
-                                    <i class="fas fa-paper-plane"></i> Надіслати відповідь
+                                <button type="submit" class="btn btn-primary text-sm px-4 py-2">
+                                    Надіслати відповідь
                                 </button>
                             </form>
                         {% endif %}
@@ -322,7 +363,7 @@
                     {% endif %}
                 </div>
 
-                {% if p.stock_quantity > 0 %}
+                {% if p.get_available_stock > 0 %}
                     <div class="text-sm text-green-600 font-semibold mt-1">В наявності</div>
                 {% else %}
                     <div class="text-sm text-red-600 font-semibold mt-1">Товар закінчився</div>
@@ -337,23 +378,84 @@
 </div>
 
 <script>
-    // Quantity button handlers
-    document.querySelectorAll('input[data-quantity-input]').forEach(input => {
-        const buttons = input.parentElement.querySelectorAll('button');
-        if (buttons.length >= 2) {
-            buttons[0].addEventListener('click', (e) => {
-                e.preventDefault();
-                if (input.value > 1) input.value--;
-            });
-            buttons[1].addEventListener('click', (e) => {
-                e.preventDefault();
-                const max = parseInt(input.max || '9999', 10);
-                const currentValue = parseInt(input.value || '1', 10);
-                if (currentValue < max) {
-                    input.value = currentValue + 1;
-                }
-            });
+    // Flavor selection handlers
+    const flavorRadios = document.querySelectorAll('input[name="flavor_id"]');
+    const quantityInput = document.querySelector('input[data-quantity-input]');
+    const stockText = document.querySelector('.flavor-stock-text');
+    const availableStock = {{ available_stock }};
+    
+    function updateMaxQuantity() {
+        let maxQty = availableStock;
+        
+        const selectedFlavor = document.querySelector('input[name="flavor_id"]:checked');
+        if (selectedFlavor) {
+            const flavorStock = parseInt(selectedFlavor.dataset.flavorStock, 10);
+            maxQty = flavorStock;
+            if (stockText) {
+                stockText.textContent = `В наявності: ${flavorStock} шт.`;
+            }
+        } else if (stockText) {
+            stockText.textContent = `В наявності: ${availableStock} шт.`;
         }
+        
+        if (quantityInput) {
+            quantityInput.max = maxQty;
+            if (parseInt(quantityInput.value) > maxQty) {
+                quantityInput.value = Math.max(1, maxQty);
+            }
+        }
+    }
+    
+    flavorRadios.forEach(radio => {
+        radio.addEventListener('change', updateMaxQuantity);
     });
+    
+    // Quantity button handlers
+    document.querySelectorAll('.quantity-decrease').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (quantityInput && quantityInput.value > 1) {
+                quantityInput.value--;
+            }
+        });
+    });
+    
+    document.querySelectorAll('.quantity-increase').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (quantityInput) {
+                const max = parseInt(quantityInput.max || '9999', 10);
+                const currentValue = parseInt(quantityInput.value || '1', 10);
+                if (currentValue < max) {
+                    quantityInput.value = currentValue + 1;
+                }
+            }
+        });
+    });
+    
+    // Initialize max quantity on page load
+    updateMaxQuantity();
+
+    // Flavor required validation on form submit
+    const cartForm = document.querySelector('form[action*="add_to_cart"]');
+    const flavorError = document.getElementById('flavor-error');
+    if (cartForm && flavorRadios.length > 0) {
+        cartForm.addEventListener('submit', function(e) {
+            const selected = document.querySelector('input[name="flavor_id"]:checked');
+            if (!selected) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (flavorError) {
+                    flavorError.classList.remove('hidden');
+                    flavorError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        });
+        flavorRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (flavorError) flavorError.classList.add('hidden');
+            });
+        });
+    }
 </script>
 {% endblock %}

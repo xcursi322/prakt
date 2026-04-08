@@ -1,13 +1,16 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.db import transaction
 from django.db.models import F, Avg, Sum
- 
- 
-from .models import Product, OrderItem, Category, Order, Customer, Review, ReviewReply
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+
+
+from .models import Product, OrderItem, Category, Order, Customer, Review, ReviewReply, ProductFlavor
 from .forms import CheckoutForm, RegistrationForm, LoginForm, ProfileForm, ReviewForm, ReviewReplyForm
+from . import liqpay as liqpay_helper
 
 
 def _is_ajax_request(request):
@@ -23,18 +26,32 @@ def _get_delivery_cost(subtotal, delivery_method):
 def _build_cart_update_payload(cart, product_id):
     total = 0
     cart_count = 0
-    target_quantity = int(cart.get(str(product_id), 0) or 0)
+    target_quantity = 0
     target_subtotal = 0
 
-    products = Product.objects.filter(id__in=cart.keys())
-    for product in products:
-        quantity = int(cart.get(str(product.id), 0) or 0)
-        subtotal = product.price * quantity
-        total += subtotal
-        cart_count += quantity
-
-        if product.id == int(product_id):
-            target_subtotal = subtotal
+    # Get all product IDs from cart
+    product_ids = set()
+    for cart_key in cart.keys():
+        parts = str(cart_key).split('_')
+        product_ids.add(int(parts[0]))
+    
+    products = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
+    
+    # Calculate totals
+    for cart_key, quantity in cart.items():
+        parts = str(cart_key).split('_')
+        pid = int(parts[0])
+        product = products.get(pid)
+        
+        if product:
+            quantity = int(quantity or 0)
+            subtotal = product.price * quantity
+            total += subtotal
+            cart_count += quantity
+            
+            if pid == int(product_id):
+                target_quantity += quantity
+                target_subtotal += subtotal
 
     shipping_cost = _get_delivery_cost(total, 'np_branch')
     grand_total = total + shipping_cost
@@ -84,20 +101,30 @@ def delivery(request):
 
 # Каталог товарів
 def catalog(request):
-    from django.db.models import Avg, Count
+    from django.db.models import Avg, Count, Q
     products = Product.objects.all()
-    categories = Category.objects.all()
+    categories = Category.objects.filter(parent__isnull=True)  # Тільки батьківські категорії
     selected_category = None
     search_query = request.GET.get('q', '').strip()
 
     if search_query:
         products = products.filter(name__icontains=search_query)
 
-    # Фільтрація за категорією
+    # Фільтрація за категорією (з урахуванням підкатегорій)
     category_id = request.GET.get('category')
     if category_id:
-        products = products.filter(category_id=category_id)
-        selected_category = get_object_or_404(Category, id=category_id)
+        try:
+            selected_category = Category.objects.get(id=category_id)
+            # Якщо вибрана батьківська категорія, показати товари з всіх підкатегорій
+            if selected_category.is_parent():
+                all_subcategories = selected_category.get_all_subcategories()
+                category_ids = [selected_category.id] + [cat.id for cat in all_subcategories]
+                products = products.filter(Q(category_id__in=category_ids))
+            else:
+                # Якщо вибрана підкатегорія, показати тільки товари з неї
+                products = products.filter(category_id=category_id)
+        except Category.DoesNotExist:
+            selected_category = None
 
     # Сортування за ціною
     sort = request.GET.get('sort')
@@ -156,6 +183,10 @@ def product_detail(request, product_id):
     customer_id = request.session.get('customer_id')
     is_admin = False
     
+    # Получение вкусов для товара
+    product_flavors = product.flavors.select_related('flavor').order_by('flavor__name')
+    available_stock = product.get_available_stock()
+    
     if customer_id:
         try:
             customer = Customer.objects.get(id=customer_id)
@@ -172,7 +203,9 @@ def product_detail(request, product_id):
         'delivery_is_free': delivery_is_free,
         'related_products': related_products,
         'customer_id': customer_id,
-        'is_admin': is_admin
+        'is_admin': is_admin,
+        'product_flavors': product_flavors,
+        'available_stock': available_stock
     })
 
 
@@ -198,10 +231,59 @@ def add_to_cart(request, product_id):
         quantity = 1
 
     product = get_object_or_404(Product, id=product_id)
+    
+    # Получение выбранного вкуса
+    flavor_id = None
+    product_flavor = None
+    
+    if request.method == 'POST':
+        requested_flavor_id = request.POST.get('flavor_id')
+    else:
+        requested_flavor_id = request.GET.get('flavor_id')
+    
+    if requested_flavor_id:
+        try:
+            product_flavor = ProductFlavor.objects.get(
+                id=requested_flavor_id,
+                product_id=product_id
+            )
+            flavor_id = requested_flavor_id
+        except ProductFlavor.DoesNotExist:
+            if _is_ajax_request(request):
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Вибраний вкус невірний',
+                    'cart_count': sum(int(qty or 0) for qty in request.session.get('cart', {}).values()),
+                }, status=400)
+            return redirect('shop:product_detail', product_id=product_id)
 
     cart = request.session.get('cart', {})  # отримуємо кошик із сесії
-    existing_quantity = int(cart.get(str(product_id), 0) or 0)
-    if product.stock_quantity <= 0:
+
+    # Якщо товар має вкуси але жодного не вибрано — повертаємо помилку
+    has_flavors = ProductFlavor.objects.filter(product_id=product_id).exists()
+    if has_flavors and not flavor_id:
+        if _is_ajax_request(request):
+            return JsonResponse({
+                'success': False,
+                'message': 'Будь ласка, оберіть смак',
+                'cart_count': sum(int(qty or 0) for qty in cart.values()),
+            }, status=400)
+        next_url = request.META.get('HTTP_REFERER')
+        return redirect(next_url) if next_url else redirect('shop:product_detail', product_id=product_id)
+
+    # Формируем ключ кошика: product_id или product_id_flavor_id
+    if flavor_id:
+        cart_key = f"{product_id}_{flavor_id}"
+    else:
+        cart_key = str(product_id)
+    
+    existing_quantity = int(cart.get(cart_key, 0) or 0)
+    
+    # Получаем доступное количество товара
+    available_stock = product.get_available_stock()
+    
+    # Проверяем наличие товара
+    if available_stock <= 0:
         if _is_ajax_request(request):
             return JsonResponse({
                 'success': False,
@@ -212,8 +294,26 @@ def add_to_cart(request, product_id):
         if next_url:
             return redirect(next_url)
         return redirect('shop:catalog')
+    
+    # Проверка наличия конкретного вкуса если он выбран
+    if product_flavor and product_flavor.stock_quantity <= 0:
+        if _is_ajax_request(request):
+            return JsonResponse({
+                'success': False,
+                'message': 'Вибраний вкус закінчився',
+                'cart_count': sum(int(qty or 0) for qty in cart.values()),
+            }, status=400)
+        next_url = request.META.get('HTTP_REFERER')
+        if next_url:
+            return redirect(next_url)
+        return redirect('shop:product_detail', product_id=product_id)
 
-    allowed_to_add = max(product.stock_quantity - existing_quantity, 0)
+    # Определяем максимальное количество, которое можно добавить
+    if product_flavor:
+        allowed_to_add = max(product_flavor.stock_quantity - existing_quantity, 0)
+    else:
+        allowed_to_add = max(available_stock - existing_quantity, 0)
+    
     if allowed_to_add <= 0:
         if _is_ajax_request(request):
             return JsonResponse({
@@ -224,7 +324,7 @@ def add_to_cart(request, product_id):
         return redirect('shop:cart')
 
     actual_add = min(quantity, allowed_to_add)
-    cart[str(product_id)] = existing_quantity + actual_add
+    cart[cart_key] = existing_quantity + actual_add
     request.session['cart'] = cart
     request.session.modified = True  # обов'язково для збереження змін
 
@@ -253,17 +353,61 @@ def cart(request):
     cart_items = []
     total = 0
 
-    for product_id, quantity in cart.items():
-        product = Product.objects.get(id=product_id)
-        subtotal = product.price * quantity
+    # Получаем все ID продуктов и вкусов
+    product_ids = set()
+    flavor_ids = set()
+    
+    for cart_key in cart.keys():
+        parts = str(cart_key).split('_')
+        if len(parts) == 2:
+            # Это product_id_flavor_id
+            product_ids.add(int(parts[0]))
+            flavor_ids.add(int(parts[1]))
+        else:
+            # Это просто product_id
+            product_ids.add(int(parts[0]))
+    
+    # Получаем все продукты и вкусы сразу
+    products = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
+    product_flavors = {pf.id: pf for pf in ProductFlavor.objects.filter(id__in=flavor_ids).select_related('flavor')}
+    
+    for cart_key, quantity in cart.items():
+        parts = str(cart_key).split('_')
+        
+        if len(parts) == 2:
+            # Это product_id_flavor_id
+            product_id = int(parts[0])
+            flavor_id = int(parts[1])
+            product = products.get(product_id)
+            product_flavor = product_flavors.get(flavor_id)
+            
+            if product and product_flavor:
+                subtotal = product.price * quantity
+                cart_items.append({
+                    'product': product,
+                    'product_flavor': product_flavor,
+                    'flavor': product_flavor.flavor,
+                    'quantity': quantity,
+                    'subtotal': subtotal,
+                    'cart_key': cart_key
+                })
+                total += subtotal
+        else:
 
-        cart_items.append({
-            'product': product,
-            'quantity': quantity,
-            'subtotal': subtotal
-        })
-
-        total += subtotal
+            product_id = int(parts[0])
+            product = products.get(product_id)
+            
+            if product:
+                subtotal = product.price * quantity
+                cart_items.append({
+                    'product': product,
+                    'product_flavor': None,
+                    'flavor': None,
+                    'quantity': quantity,
+                    'subtotal': subtotal,
+                    'cart_key': cart_key
+                })
+                total += subtotal
 
     shipping_cost = _get_delivery_cost(total, 'np_branch')
     grand_total = total + shipping_cost
@@ -283,18 +427,51 @@ def checkout(request):
     if not cart:
         return redirect('shop:cart')
 
-    products = Product.objects.filter(id__in=cart.keys())
+    # Парсуємо ключі кошика для отримання ID продуктів і смаків
+    product_ids = set()
+    cart_info = {}  # {cart_key: {'product_id': ..., 'flavor_id': ..., 'quantity': ...}}
+    
+    for cart_key, quantity in cart.items():
+        parts = str(cart_key).split('_')
+        if len(parts) == 2:
+            product_id = int(parts[0])
+            flavor_id = int(parts[1])
+            cart_info[cart_key] = {'product_id': product_id, 'flavor_id': flavor_id, 'quantity': quantity}
+            product_ids.add(product_id)
+        else:
+            product_id = int(parts[0])
+            cart_info[cart_key] = {'product_id': product_id, 'flavor_id': None, 'quantity': quantity}
+            product_ids.add(product_id)
+    
+    # Отримуємо продукти та смаки
+    products = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
+    product_flavors = {pf.id: pf for pf in ProductFlavor.objects.filter(product_id__in=product_ids).select_related('flavor', 'product')}
+    
     cart_items = []
     total = 0
 
-    for product in products:
-        quantity = cart.get(str(product.id), 0)
+    for cart_key, info in cart_info.items():
+        product_id = info['product_id']
+        flavor_id = info['flavor_id']
+        quantity = info['quantity']
+        
+        product = products.get(product_id)
+        if not product:
+            continue
+        
+        product_flavor = None
+        if flavor_id:
+            product_flavor = product_flavors.get(flavor_id)
+        
         subtotal = product.price * quantity
         total += subtotal
         cart_items.append({
             'product': product,
+            'product_flavor': product_flavor,
+            'flavor': product_flavor.flavor if product_flavor else None,
             'quantity': quantity,
-            'subtotal': subtotal
+            'subtotal': subtotal,
+            'cart_key': cart_key
         })
 
     customer = None
@@ -314,15 +491,28 @@ def checkout(request):
             with transaction.atomic():
                 stock_products = {
                     product.id: product
-                    for product in Product.objects.select_for_update().filter(id__in=cart.keys())
+                    for product in Product.objects.select_for_update().filter(id__in=product_ids)
+                }
+                stock_flavors = {
+                    pf.id: pf
+                    for pf in ProductFlavor.objects.select_for_update().filter(product_id__in=product_ids)
                 }
 
                 out_of_stock_items = []
                 for item in cart_items:
-                    fresh_product = stock_products.get(item['product'].id)
+                    product = stock_products.get(item['product'].id)
                     requested_quantity = int(item['quantity'] or 0)
-                    if not fresh_product or requested_quantity > fresh_product.stock_quantity:
-                        out_of_stock_items.append(item['product'].name)
+                    
+                    if not product:
+                        item_name = item['product'].name
+                        if item['product_flavor']:
+                            item_name += f" ({item['flavor'].name})"
+                        out_of_stock_items.append(item_name)
+                    elif item['product_flavor']:
+                        # Перевіряємо наявність конкретного смаку
+                        pf = stock_flavors.get(item['product_flavor'].id)
+                        if not pf or requested_quantity > pf.stock_quantity:
+                            out_of_stock_items.append(f"{item['product'].name} ({item['flavor'].name})")
 
                 if out_of_stock_items:
                     form.add_error(
@@ -371,19 +561,35 @@ def checkout(request):
                     for item in cart_items:
                         product = stock_products[item['product'].id]
                         quantity = int(item['quantity'] or 0)
+                        # Використовуємо свіжий locked об'єкт з stock_flavors,
+                        # якщо є смак — інакше None
+                        old_flavor = item['product_flavor']
+                        product_flavor = stock_flavors.get(old_flavor.id) if old_flavor else None
+
                         OrderItem.objects.create(
                             order=order,
                             product=product,
+                            flavor=product_flavor,
                             quantity=quantity,
-                            price=product.price
+                            price=product.price,
                         )
-                        Product.objects.filter(id=product.id).update(
-                            stock_quantity=F('stock_quantity') - quantity
-                        )
+
+                        # Зменшуємо залишок на рівні смаку
+                        if product_flavor:
+                            ProductFlavor.objects.filter(id=product_flavor.id).update(
+                                stock_quantity=F('stock_quantity') - quantity
+                            )
 
                     request.session['cart'] = {}
                     request.session.modified = True
 
+                    # Якщо онлайн-оплата — перенаправляємо на LiqPay
+                    if order.payment_method == 'online':
+                        return redirect('shop:liqpay_pay', order_id=order.id)
+
+                    # Наложений платіж — одразу показуємо успіх
+                    order.payment_status = 'cod'
+                    order.save(update_fields=['payment_status'])
                     return render(request, 'shop/checkout_success.html', {'order': order})
     else:
         selected_delivery_method = 'np_branch'
@@ -413,13 +619,35 @@ def checkout(request):
 # Збільшення кількості товару в кошику
 def increase_quantity(request, product_id):
     cart = request.session.get('cart', {})
-    pid = str(product_id)
-
-    if pid in cart:
+    
+    # Отримуємо flavor_id з параметрів
+    if request.method == 'POST':
+        flavor_id = request.POST.get('flavor_id')
+    else:
+        flavor_id = request.GET.get('flavor_id')
+    
+    # Формируем ключ
+    if flavor_id:
+        cart_key = f"{product_id}_{flavor_id}"
+    else:
+        cart_key = str(product_id)
+    
+    if cart_key in cart:
         product = get_object_or_404(Product, id=product_id)
-        current_qty = int(cart[pid] or 0)
-        if current_qty < product.stock_quantity:
-            cart[pid] = current_qty + 1
+        current_qty = int(cart[cart_key] or 0)
+        
+        # Перевіряємо ліміт кількості
+        if flavor_id:
+            try:
+                product_flavor = ProductFlavor.objects.get(id=flavor_id, product_id=product_id)
+                max_qty = product_flavor.stock_quantity
+            except ProductFlavor.DoesNotExist:
+                max_qty = product.get_available_stock()
+        else:
+            max_qty = product.get_available_stock()
+        
+        if current_qty < max_qty:
+            cart[cart_key] = current_qty + 1
         elif _is_ajax_request(request):
             payload = _build_cart_update_payload(cart, product_id)
             payload.update({
@@ -439,12 +667,23 @@ def increase_quantity(request, product_id):
 # Зменшення кількості товару в кошику
 def decrease_quantity(request, product_id):
     cart = request.session.get('cart', {})
-    pid = str(product_id)
+    
+    # Отримуємо flavor_id з параметрів
+    if request.method == 'POST':
+        flavor_id = request.POST.get('flavor_id')
+    else:
+        flavor_id = request.GET.get('flavor_id')
+    
+    # Формируем ключ
+    if flavor_id:
+        cart_key = f"{product_id}_{flavor_id}"
+    else:
+        cart_key = str(product_id)
 
-    if pid in cart:
-        cart[pid] -= 1
-        if cart[pid] <= 0:
-            del cart[pid]
+    if cart_key in cart:
+        cart[cart_key] -= 1
+        if cart[cart_key] <= 0:
+            del cart[cart_key]
 
     request.session['cart'] = cart
     request.session.modified = True
@@ -457,10 +696,21 @@ def decrease_quantity(request, product_id):
 # Видалення товару з кошика
 def remove_from_cart(request, product_id):
     cart = request.session.get('cart', {})
-    pid = str(product_id)
+    
+    # Отримуємо flavor_id з параметрів
+    if request.method == 'POST':
+        flavor_id = request.POST.get('flavor_id')
+    else:
+        flavor_id = request.GET.get('flavor_id')
+    
+    # Формируем ключ
+    if flavor_id:
+        cart_key = f"{product_id}_{flavor_id}"
+    else:
+        cart_key = str(product_id)
 
-    if pid in cart:
-        del cart[pid]
+    if cart_key in cart:
+        del cart[cart_key]
 
     request.session['cart'] = cart
     request.session.modified = True
@@ -600,7 +850,12 @@ def add_review(request, product_id):
     
     # Перевіряємо, чи вже користувач залишив відгук на цей товар
     existing_review = Review.objects.filter(product=product, customer=customer).first()
-    
+    is_edit = request.GET.get('edit') == '1' or request.method == 'POST'
+
+    # Якщо відгук вже є і це не режим редагування — редирект назад
+    if existing_review and not is_edit:
+        return redirect(f"{reverse('shop:product_detail', kwargs={'product_id': product_id})}#review-{existing_review.id}")
+
     if request.method == 'POST':
         form = ReviewForm(request.POST, instance=existing_review)
         if form.is_valid():
@@ -694,3 +949,102 @@ def delete_reply(request, reply_id):
         return redirect('shop:product_detail', product_id=product_id)
     
     return render(request, 'shop/delete_reply.html', {'reply': reply})
+
+
+# ─── LiqPay ───────────────────────────────────────────────────────────────────
+
+def liqpay_pay(request, order_id):
+    """
+    Показує сторінку з auto-submit формою до LiqPay.
+    Юзер потрапляє сюди після оформлення замовлення з онлайн-оплатою.
+    """
+    order = get_object_or_404(Order, id=order_id)
+
+    # Якщо замовлення вже оплачене — одразу на success
+    if order.payment_status == 'paid':
+        return render(request, 'shop/checkout_success.html', {'order': order})
+
+    callback_url = request.build_absolute_uri(reverse('shop:liqpay_callback'))
+    result_url = request.build_absolute_uri(
+        reverse('shop:liqpay_result', kwargs={'order_id': order.id})
+    )
+
+    form_data = liqpay_helper.build_checkout_form(
+        public_key=settings.LIQPAY_PUBLIC_KEY,
+        private_key=settings.LIQPAY_PRIVATE_KEY,
+        order_id=order.id,
+        amount=order.total,
+        description=f'Замовлення #{order.id} — Sport Nutrition Shop',
+        server_url=callback_url,
+        result_url=result_url,
+        sandbox=settings.LIQPAY_SANDBOX,
+    )
+
+    return render(request, 'shop/liqpay_redirect.html', {
+        'order': order,
+        'liqpay': form_data,
+    })
+
+
+@csrf_exempt
+def liqpay_callback(request):
+    """
+    Server-to-server callback від LiqPay.
+    LiqPay надсилає POST із полями data та signature.
+    Ми перевіряємо підпис і оновлюємо статус оплати замовлення.
+    """
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+
+    data = request.POST.get('data', '')
+    signature = request.POST.get('signature', '')
+
+    if not liqpay_helper.verify_callback(settings.LIQPAY_PRIVATE_KEY, data, signature):
+        return HttpResponse('invalid signature', status=400)
+
+    payload = liqpay_helper.decode_callback(data)
+    order_id = payload.get('order_id')
+    status = payload.get('status')  # 'success', 'sandbox', 'failure', 'error', etc.
+
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return HttpResponse('order not found', status=404)
+
+    # LiqPay повертає 'success' або 'sandbox' для успішних тестових платежів
+    if status in ('success', 'sandbox'):
+        order.payment_status = 'paid'
+        order.status = 'processing'
+    else:
+        order.payment_status = 'failed'
+
+    order.save(update_fields=['payment_status', 'status'])
+    return HttpResponse('OK')
+
+
+@csrf_exempt
+def liqpay_result(request, order_id):
+    """
+    Сторінка, на яку LiqPay перенаправляє юзера після оплати.
+    LiqPay також надсилає data+signature сюди — використовуємо це
+    щоб оновити статус одразу (особливо важливо при локальному тестуванні,
+    коли server_url недоступний).
+    """
+    order = get_object_or_404(Order, id=order_id)
+
+    data = request.POST.get('data', '')
+    signature = request.POST.get('signature', '')
+
+    if data and signature and order.payment_status not in ('paid', 'cod'):
+        if liqpay_helper.verify_callback(settings.LIQPAY_PRIVATE_KEY, data, signature):
+            payload = liqpay_helper.decode_callback(data)
+            status = payload.get('status')
+            if status in ('success', 'sandbox'):
+                order.payment_status = 'paid'
+                order.status = 'processing'
+                order.save(update_fields=['payment_status', 'status'])
+            elif status in ('failure', 'error', 'reversed'):
+                order.payment_status = 'failed'
+                order.save(update_fields=['payment_status'])
+
+    return render(request, 'shop/checkout_success.html', {'order': order})

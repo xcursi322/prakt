@@ -8,7 +8,7 @@
                 <div class="no-image"><i class="fas fa-box"></i></div>
             {% endif %}
         </a>
-            {% if product.stock_quantity > 0 %}
+            {% if product.get_available_stock > 0 %}
                 <a class="product-card-perfect-plus" href="{% url 'shop:add_to_cart' product.id %}" data-add-to-cart-url="{% url 'shop:add_to_cart' product.id %}" title="Додати в кошик" aria-label="Додати в кошик">
                     <i class="fas fa-plus"></i>
                 </a>
@@ -38,7 +38,7 @@
             <div class="text-sm text-gray-400 line-through">{{ product.old_price|floatformat:0 }} ГРН</div>
         {% endif %}
     </div>
-    {% if product.stock_quantity > 0 %}
+    {% if product.get_available_stock > 0 %}
         <div class="text-sm text-green-600 font-semibold mt-2">В наявності</div>
     {% else %}
         <div class="text-sm text-red-600 font-semibold mt-2">Товар закінчився</div>

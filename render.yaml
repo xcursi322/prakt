@@ -17,6 +17,12 @@ services:
         fromDatabase:
           name: sport-nutrition-db
           property: connectionString
+      - key: LIQPAY_SANDBOX
+        value: "False"
+      - key: LIQPAY_PUBLIC_KEY
+        sync: false
+      - key: LIQPAY_PRIVATE_KEY
+        sync: false
 
 databases:
   - name: sport-nutrition-db
