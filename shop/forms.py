@@ -1,4 +1,5 @@
 from django import forms
+from django.core.validators import RegexValidator
 from .models import Order, Customer, Review, ReviewReply
 
 PAYMENT_CHOICES = [
@@ -102,18 +103,31 @@ class CheckoutForm(forms.ModelForm):
 
 
 class RegistrationForm(forms.ModelForm):
+    username_validator = RegexValidator(
+        regex=r'^[a-zA-Z0-9_]+$',
+        message='Логін може містити лише латинські літери, цифри та знак підкреслення'
+    )
+
     password1 = forms.CharField(
         label='Пароль',
+        min_length=8,
+        max_length=128,
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Пароль'
+            'placeholder': 'Пароль',
+            'minlength': '8',
+            'maxlength': '128',
         })
     )
     password2 = forms.CharField(
         label='Підтвердіть пароль',
+        min_length=8,
+        max_length=128,
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Підтвердіть пароль'
+            'placeholder': 'Підтвердіть пароль',
+            'minlength': '8',
+            'maxlength': '128',
         })
     )
 
@@ -123,7 +137,11 @@ class RegistrationForm(forms.ModelForm):
         widgets = {
             'username': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ім\'я користувача'
+                'placeholder': 'Ім\'я користувача',
+                'minlength': '3',
+                'maxlength': '50',
+                'pattern': '[a-zA-Z0-9_]+',
+                'title': 'Тільки латинські літери, цифри та _',
             }),
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',
@@ -139,10 +157,21 @@ class RegistrationForm(forms.ModelForm):
             }),
         }
 
+    def clean_username(self):
+        username = self.cleaned_data.get('username', '')
+        if len(username) < 3:
+            raise forms.ValidationError('Логін має містити мінімум 3 символи')
+        if len(username) > 50:
+            raise forms.ValidationError('Логін не може перевищувати 50 символів')
+        validator = RegexValidator(
+            regex=r'^[a-zA-Z0-9_]+$',
+            message='Логін може містити лише латинські літери, цифри та знак підкреслення'
+        )
+        validator(username)
+        return username
+
     def clean(self):
         cleaned_data = super().clean()
-        password1 = cleaned_data.get('password1')
-        password2 = cleaned_data.get('password2')
 
         if password1 and password2:
             if password1 != password2:
@@ -166,16 +195,23 @@ class RegistrationForm(forms.ModelForm):
 
 class LoginForm(forms.Form):
     username = forms.CharField(
-        max_length=150,
+        max_length=50,
+        min_length=3,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Ім\'я користувача'
+            'placeholder': 'Ім\'я користувача',
+            'minlength': '3',
+            'maxlength': '50',
         })
     )
     password = forms.CharField(
+        min_length=8,
+        max_length=128,
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Пароль'
+            'placeholder': 'Пароль',
+            'minlength': '8',
+            'maxlength': '128',
         })
     )
 
