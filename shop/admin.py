@@ -447,7 +447,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'old_price', 'display_available_stock', 'category', 'created_at')
     list_filter = ('category', 'created_at')
     search_fields = ('name', 'description')
-    fields = ('name', 'price', 'old_price', 'display_available_stock', 'description', 'category', 'image')
+    fields = ('name', 'price', 'old_price', 'display_available_stock', 'description', 'category')
     readonly_fields = ('display_available_stock',)
     inlines = [ProductImageInline, ProductFlavorInline]
 

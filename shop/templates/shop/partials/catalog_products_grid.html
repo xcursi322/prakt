@@ -2,8 +2,8 @@
 <div class="product-card-perfect" data-product-name="{{ product.name|lower }}">
     <div class="product-card-perfect-imgwrap">
         <a href="{% url 'shop:product_detail' product.id %}">
-            {% if product.image %}
-                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-card-perfect-img" loading="lazy">
+            {% if product.main_image %}
+                <img src="{{ product.main_image.image.url }}" alt="{{ product.name }}" class="product-card-perfect-img" loading="lazy">
             {% else %}
                 <div class="no-image"><i class="fas fa-box"></i></div>
             {% endif %}

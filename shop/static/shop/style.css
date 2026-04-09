@@ -509,11 +509,9 @@ html.theme-dark .delivery-zones-tags span {
 	font-weight: 800;
 	color: #222;
 	margin-bottom: 0.5rem;
-	min-height: 2.2em;
-	max-height: 2.8em;
 	text-transform: uppercase;
 	display: -webkit-box;
-	-webkit-line-clamp: 2;
+	-webkit-line-clamp: 3;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 	word-break: break-word;
@@ -521,8 +519,8 @@ html.theme-dark .delivery-zones-tags span {
 }
 .product-card-perfect-desc {
 	font-size: 0.875rem;
-	color: #9ca3af;
-	margin-top: -1rem;
+	color: #6b7280;
+	margin-top: 0;
 	margin-bottom: 0.5rem;
 	line-height: 1.5;
 	display: -webkit-box;

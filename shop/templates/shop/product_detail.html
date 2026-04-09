@@ -222,7 +222,7 @@
 <!-- Опис -->
 <div class="mt-10 mb-6 fade-in-up">
     <h2 class="text-xl font-bold text-gray-900 mb-3">Опис</h2>
-    <p class="text-gray-700 leading-relaxed text-lg">
+    <p class="text-gray-700 leading-relaxed text-lg" style="word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap;">
         {{ product.description }}
     </p>
 </div>
@@ -356,8 +356,8 @@
         {% for p in related_products|slice:":4" %}
             <a href="{% url 'shop:product_detail' p.id %}" class="product-card-perfect group" data-product-name="{{ p.name|lower }}">
                 <div class="product-card-perfect-imgwrap">
-                    {% if p.image %}
-                        <img src="{{ p.image.url }}" alt="{{ p.name }}" class="product-card-perfect-img" loading="lazy">
+                    {% if p.main_image %}
+                        <img src="{{ p.main_image.image.url }}" alt="{{ p.name }}" class="product-card-perfect-img" loading="lazy">
                     {% else %}
                         <div class="no-image"><i class="fas fa-box"></i></div>
                     {% endif %}

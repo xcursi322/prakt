@@ -85,7 +85,6 @@ class Product(models.Model):
     old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Стара ціна")
     stock_quantity = models.PositiveIntegerField(default=0, help_text="Кількість в наявності (використовується тільки якщо немає смаків)")
     description = models.TextField(blank=True)     # Опис
-    image = models.ImageField(upload_to='products/', blank=True, null=True)  # Головне зображення
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')  # Категорія
     created_at = models.DateTimeField(auto_now_add=True)  # Дата створення
 
@@ -101,13 +100,12 @@ class Product(models.Model):
         # Якщо немає смаків — повертаємо загальне кількість з поля
         return self.stock_quantity
 
+    @property
+    def main_image(self):
+        return self.extra_images.order_by('order').first()
+
     def get_all_images(self):
-        images = []
-        if self.image:
-            images.append(self.image.url)
-        for extra in self.extra_images.order_by('order'):
-            images.append(extra.image.url)
-        return images
+        return [extra.image.url for extra in self.extra_images.order_by('order')]
 
 
 class ProductImage(models.Model):

@@ -118,8 +118,8 @@
             {% for product in featured_products %}
                 <article class="home-product-card">
                     <div class="home-product-media">
-                        {% if product.image %}
-                            <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                        {% if product.main_image %}
+                            <img src="{{ product.main_image.image.url }}" alt="{{ product.name }}" loading="lazy">
                         {% else %}
                             <div class="home-product-placeholder">
                                 <i class="fas fa-box"></i>

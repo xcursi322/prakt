@@ -20,8 +20,8 @@
                 {% for item in cart_items %}
                     <div class="cart-item cart-item-card" data-cart-item data-product-id="{{ item.product.id }}" {% if item.flavor %}data-flavor-id="{{ item.product_flavor.id }}"{% endif %} data-price="{{ item.product.price }}" data-quantity="{{ item.quantity }}">
                         <!-- Зображення товару -->
-                        {% if item.product.image %}
-                            <img src="{{ item.product.image.url }}"
+                        {% if item.product.main_image %}
+                            <img src="{{ item.product.main_image.image.url }}"
                                  alt="{{ item.product.name }}"
                                  class="cart-item-image cart-item-thumb">
                         {% else %}
