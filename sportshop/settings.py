@@ -192,8 +192,8 @@ else:
     }
 
 # LiqPay
-LIQPAY_PUBLIC_KEY = os.getenv('LIQPAY_PUBLIC_KEY', 'sandbox_i58608355309')
-LIQPAY_PRIVATE_KEY = os.getenv('LIQPAY_PRIVATE_KEY', 'sandbox_fKVzknbI4RbywKM0M3jw6CJnFsaHIH51eNA2PtIX')
+LIQPAY_PUBLIC_KEY = os.getenv('LIQPAY_PUBLIC_KEY', '')
+LIQPAY_PRIVATE_KEY = os.getenv('LIQPAY_PRIVATE_KEY', '')
 LIQPAY_SANDBOX = os.getenv('LIQPAY_SANDBOX', 'True').lower() == 'true'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

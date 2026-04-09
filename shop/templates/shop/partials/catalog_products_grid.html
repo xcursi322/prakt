@@ -25,7 +25,9 @@
             {% endif %}
     </div>
     <div class="product-card-perfect-title">{{ product.name }}</div>
+    {% if product.description %}
     <div class="product-card-perfect-desc">{{ product.description|truncatechars:90 }}</div>
+    {% endif %}
     <div class="product-card-perfect-rating">
         <span class="stars">
             {% for i in "12345" %}
