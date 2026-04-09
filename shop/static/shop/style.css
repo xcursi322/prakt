@@ -214,6 +214,9 @@ html.theme-dark .product-card-perfect-imgwrap {
 html.theme-dark .product-card-perfect-title {
 	color: #f8fafc;
 }
+html.theme-dark .product-card-perfect-desc {
+	color: #64748b;
+}
 
 html.theme-dark .product-card-perfect-rating .star-empty {
 	color: #475569;
@@ -507,7 +510,27 @@ html.theme-dark .delivery-zones-tags span {
 	color: #222;
 	margin-bottom: 0.5rem;
 	min-height: 2.2em;
+	max-height: 2.8em;
 	text-transform: uppercase;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	word-break: break-word;
+	line-height: 1.35;
+}
+.product-card-perfect-desc {
+	font-size: 0.875rem;
+	color: #9ca3af;
+	margin-top: -1rem;
+	margin-bottom: 0.5rem;
+	line-height: 1.5;
+	min-height: 4.5em;
+	max-height: 4.5em;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
 }
 .product-card-perfect-rating {
 	display: flex;
