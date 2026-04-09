@@ -3,7 +3,7 @@ from .models import Order, Customer, Review, ReviewReply
 
 PAYMENT_CHOICES = [
     ('online', 'Онлайн'),
-    ('cod', 'Наложений платіж'),
+    ('cod', 'Накладений платіж'),
 ]
 
 DELIVERY_CHOICES = [

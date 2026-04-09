@@ -1,5 +1,6 @@
 from django.db import models
 import hashlib
+import uuid
 
 STATUS_CHOICES = [
     ('new', 'Новий'),
@@ -84,7 +85,7 @@ class Product(models.Model):
     old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Стара ціна")
     stock_quantity = models.PositiveIntegerField(default=0, help_text="Кількість в наявності (використовується тільки якщо немає смаків)")
     description = models.TextField()              # Опис
-    image = models.ImageField(upload_to='products/', blank=True, null=True)  # Зображення
+    image = models.ImageField(upload_to='products/', blank=True, null=True)  # Головне зображення
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')  # Категорія
     created_at = models.DateTimeField(auto_now_add=True)  # Дата створення
 
@@ -99,6 +100,26 @@ class Product(models.Model):
             return total
         # Якщо немає смаків — повертаємо загальне кількість з поля
         return self.stock_quantity
+
+    def get_all_images(self):
+        images = []
+        if self.image:
+            images.append(self.image.url)
+        for extra in self.extra_images.order_by('order'):
+            images.append(extra.image.url)
+        return images
+
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='extra_images')
+    image = models.ImageField(upload_to='products/')
+    order = models.PositiveIntegerField(default=0, help_text='Порядок відображення (менше = раніше)')
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Фото {self.order} для {self.product.name}"
 
 
 class CartItem(models.Model):
@@ -129,14 +150,12 @@ class Order(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
+    liqpay_token = models.CharField(max_length=64, blank=True, default='')
 
     def delivery_method_label(self):
         labels = {
             'np_branch': 'Відділення НП',
             'courier_kyiv': 'Курʼєр по Києву',
-            'nova_poshta': 'Відділення НП',
-            'courier': 'Курʼєр по Києву',
-            'pickup': 'Самовивіз',
         }
         return labels.get(self.delivery_method, self.delivery_method)
 
@@ -166,6 +185,22 @@ class OrderItem(models.Model):
         if self.flavor:
             return f"{self.product.name} ({self.flavor.flavor.name}) x {self.quantity or 0}"
         return f"{self.product.name} x {self.quantity or 0}"
+
+
+class PendingCheckout(models.Model):
+    """Тимчасове сховище даних замовлення до підтвердження оплати LiqPay."""
+    token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
+    form_data = models.JSONField()        # поля форми checkout
+    cart_snapshot = models.JSONField()   # копія session['cart']
+    grand_total = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"PendingCheckout {self.token}"
 
 
 class SiteVisit(models.Model):
@@ -214,7 +249,12 @@ class Review(models.Model):
 
 class ReviewReply(models.Model):
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='replies')
-    admin = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='review_replies')
+    admin = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='review_replies'
+    )
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -228,7 +268,6 @@ class ReviewReply(models.Model):
 
 class Flavor(models.Model):
     name = models.CharField(max_length=100, unique=True)  
-    description = models.TextField(blank=True)  
     hex_color = models.CharField(
         max_length=7,
         default='#9CA3AF'

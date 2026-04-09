@@ -2,13 +2,12 @@ from django.contrib import admin
 from django import forms
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncMonth, TruncDay, TruncHour
-from django.db.models import Q
 from django.template.response import TemplateResponse
 from django.urls import path
 from datetime import date, datetime, time, timedelta
 from django.utils import timezone
 
-from .models import Product, Order, OrderItem, Category, Customer, Review, ReviewReply, SiteVisit, STATUS_CHOICES, Flavor, ProductFlavor
+from .models import Product, Order, OrderItem, Category, Customer, Review, ReviewReply, SiteVisit, STATUS_CHOICES, Flavor, ProductFlavor, ProductImage
 
 
 UKR_MONTHS = {
@@ -431,6 +430,12 @@ class CustomerAdmin(admin.ModelAdmin):
     )
 
 
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 1
+    fields = ('image', 'order')
+
+
 class ProductFlavorInline(admin.TabularInline):
     model = ProductFlavor
     extra = 1
@@ -444,7 +449,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description')
     fields = ('name', 'price', 'old_price', 'display_available_stock', 'description', 'category', 'image')
     readonly_fields = ('display_available_stock',)
-    inlines = [ProductFlavorInline]
+    inlines = [ProductImageInline, ProductFlavorInline]
 
     def display_available_stock(self, obj):
         stock = obj.get_available_stock()
@@ -477,41 +482,18 @@ class OrderAdmin(admin.ModelAdmin):
         return tuple(readonly)
 
 
-class ReviewReplyAdminForm(forms.ModelForm):
-    class Meta:
-        model = ReviewReply
-        fields = '__all__'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        admin_field = self.fields.get('admin')
-        if not admin_field:
-            return
-
-        admin_queryset = Customer.objects.filter(is_admin=True, is_active=True)
-
-        if self.instance and self.instance.pk and self.instance.admin_id:
-            admin_queryset = Customer.objects.filter(
-                Q(is_admin=True, is_active=True) | Q(pk=self.instance.admin_id)
-            )
-
-        admin_field.queryset = admin_queryset.order_by('username').distinct()
-
-    def clean_admin(self):
-        selected_admin = self.cleaned_data.get('admin')
-        if selected_admin and not selected_admin.is_admin:
-            raise forms.ValidationError('Для відповіді можна обрати лише адміністратора.')
-        if selected_admin and not selected_admin.is_active:
-            raise forms.ValidationError('Неактивного адміністратора обрати не можна.')
-        return selected_admin
-
-
 class ReviewReplyInline(admin.TabularInline):
     model = ReviewReply
-    form = ReviewReplyAdminForm
     extra = 1
-    fields = ('admin', 'text', 'created_at')
-    readonly_fields = ('created_at',)
+    fields = ('text',)
+
+    def save_new(self, form, commit=True):
+        obj = super().save_new(form, commit=False)
+        if self.request:
+            obj.admin = self.request.user
+        if commit:
+            obj.save()
+        return obj
 
 
 @admin.register(Review)
@@ -521,6 +503,22 @@ class ReviewAdmin(admin.ModelAdmin):
     search_fields = ('title', 'text', 'product__name', 'customer__username')
     readonly_fields = ('customer', 'product')
     inlines = [ReviewReplyInline]
+
+    def get_inline_instances(self, request, obj=None):
+        instances = super().get_inline_instances(request, obj)
+        for inline in instances:
+            inline.request = request
+        return instances
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for obj in instances:
+            if isinstance(obj, ReviewReply) and not obj.admin_id:
+                obj.admin = request.user
+            obj.save()
+        for obj in formset.deleted_objects:
+            obj.delete()
+        formset.save_m2m()
     fieldsets = (
         ('Основна інформація', {
             'fields': ('product', 'customer', 'rating', 'title')
@@ -531,22 +529,13 @@ class ReviewAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(ReviewReply)
-class ReviewReplyAdmin(admin.ModelAdmin):
-    form = ReviewReplyAdminForm
-    list_display = ('review', 'admin', 'created_at')
-    list_filter = ('created_at',)
-    search_fields = ('text', 'review__title', 'admin__username')
-    readonly_fields = ('review', 'created_at', 'updated_at')
-
-
 @admin.register(Flavor)
 class FlavorAdmin(admin.ModelAdmin):
     list_display = ('name', 'hex_color')
     search_fields = ('name',)
     fieldsets = (
         ('Основна інформація', {
-            'fields': ('name', 'hex_color', 'description')
+            'fields': ('name', 'hex_color')
         }),
     )
 

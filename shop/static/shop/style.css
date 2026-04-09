@@ -268,6 +268,17 @@ html.theme-dark .cart-qty-btn {
 	color: #93c5fd;
 }
 
+html.theme-dark .cart-remove {
+	background: rgba(220, 38, 38, 0.12);
+	border-color: rgba(248, 113, 113, 0.3);
+	color: #f87171;
+}
+
+html.theme-dark .cart-remove:hover {
+	background: rgba(248, 113, 113, 0.22);
+	color: #fca5a5;
+}
+
 html.theme-dark .delivery-grid article,
 html.theme-dark .delivery-pricing-grid > div {
 	background: #111827;

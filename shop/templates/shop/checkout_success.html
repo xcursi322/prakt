@@ -39,16 +39,10 @@
                     <span class="inline-flex items-center gap-2 bg-red-100 text-red-800 font-bold text-sm px-4 py-2 rounded-full border border-red-300">
                         <i class="fas fa-times-circle"></i> Помилка оплати
                     </span>
-                    <p class="text-red-600 text-sm mt-2">
-                        <a href="{% url 'shop:liqpay_pay' order_id=order.id %}" class="underline font-semibold">Спробувати ще раз</a>
-                    </p>
                 {% else %}
                     <span class="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 font-bold text-sm px-4 py-2 rounded-full border border-yellow-300">
                         <i class="fas fa-clock"></i> Очікує оплати
                     </span>
-                    <p class="text-gray-500 text-sm mt-2">
-                        <a href="{% url 'shop:liqpay_pay' order_id=order.id %}" class="text-blue-600 underline font-semibold">Оплатити зараз</a>
-                    </p>
                 {% endif %}
             </div>
         </div>

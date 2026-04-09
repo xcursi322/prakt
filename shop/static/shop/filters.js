@@ -1,7 +1,6 @@
-// === СУЧАСНИЙ JAVASCRIPT ДЛЯ SPORT SHOP ===
+
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Ініціалізувати всі функції
     initializeFilters();
     initializeAnimations();
     initializeCartFeatures();
@@ -110,17 +109,14 @@ function initializeAnimations() {
         });
     }, observerOptions);
 
-    // Відстежувати картки товарів
     document.querySelectorAll('.product-card').forEach(card => {
         observer.observe(card);
     });
 
-    // Відстежувати секції форми
     document.querySelectorAll('.form-group, .checkout-form').forEach(element => {
         observer.observe(element);
     });
 
-    // Плавна прокрутка для якірних посилань
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
@@ -137,7 +133,6 @@ function initializeAnimations() {
 
 // === ФУНКЦІЇ КОШИКА ===
 function initializeCartFeatures() {
-    // Делегування кліків додавання в кошик (якщо кнопки перемальовуються)
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-add-to-cart-url]');
         if (btn) {
@@ -176,14 +171,11 @@ function handleAddToCart(e) {
     })
     .then(data => {
         if (!data) return;
-        // Успішно додано
         showNotification(data.message || 'Товар додано до кошика!', 'success');
-        // Оновити лічильник кошика (якщо є)
         const cartCount = document.querySelector('[data-cart-count]');
         if (cartCount && typeof data.cart_count !== 'undefined') {
             cartCount.textContent = data.cart_count;
         }
-        // Анімація іконки кошика
         const cartIcon = document.querySelector('[data-cart-icon]');
         if (cartIcon) {
             cartIcon.style.animation = 'pulse-glow 0.6s ease';
@@ -197,7 +189,6 @@ function handleAddToCart(e) {
             showNotification(errorData.message, 'error');
             return;
         }
-        // Резервний варіант: перехід на add URL, щоб гарантовано додати товар
         window.location.href = addUrl;
     });
 }
@@ -367,11 +358,8 @@ function formatHryvnia(value) {
 // === ВАЛІДАЦІЯ ФОРМИ ===
 function initializeFormValidation() {
     const forms = document.querySelectorAll('[data-validate]');
-    
     forms.forEach(form => {
         form.addEventListener('submit', validateForm);
-        
-        // Валідація в реальному часі
         form.querySelectorAll('input, select, textarea').forEach(field => {
             field.addEventListener('blur', validateField);
             field.addEventListener('change', validateField);
@@ -418,7 +406,7 @@ function validateField() {
     // Правила валідації
     if (field.hasAttribute('required') && !value) {
         isValid = false;
-        errorMessage = 'Це поле обов\'язкове';
+        errorMessage = "Це поле обов'язкове";
     } else if (field.type === 'email' && value && !isValidEmail(value)) {
         isValid = false;
         errorMessage = 'Введіть коректну електронну адресу';
@@ -427,7 +415,7 @@ function validateField() {
         errorMessage = 'Введіть коректний номер телефону';
     } else if (fieldName === 'username' && value && value.length < 3) {
         isValid = false;
-        errorMessage = 'Ім\'я користувача повинно мати мінімум 3 символи';
+        errorMessage = "Ім'я користувача повинно мати мінімум 3 символи";
     } else if (fieldName === 'password' && value && value.length < 6) {
         isValid = false;
         errorMessage = 'Пароль повинен мати мінімум 6 символів';
@@ -524,7 +512,6 @@ function setupDropdowns() {
     });
 }
 
-// Ініціалізувати під час завантаження
 document.addEventListener('DOMContentLoaded', setupDropdowns);
 
 // === ДОПОМІЖНІ ФУНКЦІЇ ===

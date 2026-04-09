@@ -8,8 +8,8 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
 
-from .models import Product, OrderItem, Category, Order, Customer, Review, ReviewReply, ProductFlavor
-from .forms import CheckoutForm, RegistrationForm, LoginForm, ProfileForm, ReviewForm, ReviewReplyForm
+from .models import Product, OrderItem, Category, Order, Customer, Review, ProductFlavor, PendingCheckout
+from .forms import CheckoutForm, RegistrationForm, LoginForm, ProfileForm, ReviewForm
 from . import liqpay as liqpay_helper
 
 
@@ -101,6 +101,7 @@ def delivery(request):
 
 # Каталог товарів
 def catalog(request):
+    import json
     from django.db.models import Avg, Count, Q
     products = Product.objects.all()
     categories = Category.objects.filter(parent__isnull=True)  # Тільки батьківські категорії
@@ -141,6 +142,11 @@ def catalog(request):
         avg_rating = rating_stats.get('avg_rating')
         p.aggregate_avg_rating = int(round(avg_rating)) if avg_rating is not None else 0
         p.review_count = rating_stats.get('review_count') or 0
+        flavors_qs = p.flavors.filter(stock_quantity__gt=0).select_related('flavor')
+        p.flavors_json = json.dumps([
+            {'id': pf.id, 'name': pf.flavor.name, 'color': pf.flavor.hex_color, 'stock': pf.stock_quantity}
+            for pf in flavors_qs
+        ], ensure_ascii=False)
 
     if _is_ajax_request(request):
         products_html = render_to_string('shop/partials/catalog_products_grid.html', {
@@ -519,6 +525,25 @@ def checkout(request):
                         'Недостатньо товару в наявності: ' + ', '.join(out_of_stock_items)
                     )
                 else:
+                    payment_method = form.cleaned_data.get('payment_method')
+
+                    if payment_method == 'online':
+                        # Online payment: store data in PendingCheckout only.
+                        # Don't create Order yet, don't clear cart.
+                        form_fields = [
+                            'first_name', 'last_name', 'email', 'phone',
+                            'address', 'city', 'postal_code', 'postal_branch',
+                            'delivery_method', 'payment_method',
+                        ]
+                        pending = PendingCheckout.objects.create(
+                            customer=customer,
+                            form_data={f: request.POST.get(f, '') for f in form_fields},
+                            cart_snapshot=dict(cart),
+                            grand_total=grand_total,
+                        )
+                        return redirect('shop:liqpay_pay', token=str(pending.token))
+
+                    # COD: create Order and items immediately
                     order = form.save(commit=False)
                     order.total = grand_total
 
@@ -560,8 +585,6 @@ def checkout(request):
                     for item in cart_items:
                         product = stock_products[item['product'].id]
                         quantity = int(item['quantity'] or 0)
-                        # Використовуємо свіжий locked об'єкт з stock_flavors,
-                        # якщо є смак — інакше None
                         old_flavor = item['product_flavor']
                         product_flavor = stock_flavors.get(old_flavor.id) if old_flavor else None
 
@@ -573,7 +596,6 @@ def checkout(request):
                             price=product.price,
                         )
 
-                        # Зменшуємо залишок на рівні смаку
                         if product_flavor:
                             ProductFlavor.objects.filter(id=product_flavor.id).update(
                                 stock_quantity=F('stock_quantity') - quantity
@@ -581,10 +603,6 @@ def checkout(request):
 
                     request.session['cart'] = {}
                     request.session.modified = True
-
-                    # Якщо онлайн-оплата — перенаправляємо на LiqPay
-                    if order.payment_method == 'online':
-                        return redirect('shop:liqpay_pay', order_id=order.id)
 
                     # Наложений платіж — одразу показуємо успіх
                     order.payment_status = 'cod'
@@ -894,92 +912,105 @@ def delete_review(request, review_id):
 
 
 # Додавання відповіді адміністратором на відгук
-def add_reply_to_review(request, review_id):
-    review = get_object_or_404(Review, id=review_id)
-    admin_id = request.session.get('customer_id')
-    
-    if not admin_id:
-        return redirect('shop:login')
-    
-    admin = get_object_or_404(Customer, id=admin_id)
-    
-    # Перевіряємо, чи є користувач адміністратором
-    if not admin.is_admin:
-        return redirect('shop:product_detail', product_id=review.product.id)
-
-    if request.method == 'GET':
-        return redirect(f"{reverse('shop:product_detail', kwargs={'product_id': review.product.id})}#review-{review.id}")
-    
-    if request.method == 'POST':
-        form = ReviewReplyForm(request.POST)
-        if form.is_valid():
-            reply = form.save(commit=False)
-            reply.review = review
-            reply.admin = admin
-            reply.save()
-            return redirect(f"{reverse('shop:product_detail', kwargs={'product_id': review.product.id})}#review-{review.id}")
-    else:
-        form = ReviewReplyForm()
-    
-    return render(request, 'shop/add_reply.html', {
-        'form': form,
-        'review': review
-    })
 
 
-# Видалення відповіді адміністратором
-def delete_reply(request, reply_id):
-    reply = get_object_or_404(ReviewReply, id=reply_id)
-    admin_id = request.session.get('customer_id')
-    
-    if not admin_id or str(admin_id) != str(reply.admin.id):
-        return redirect('shop:product_detail', product_id=reply.review.product.id)
-    
-    admin = get_object_or_404(Customer, id=admin_id)
-    
-    # Перевіряємо права адміністратора
-    if not admin.is_admin:
-        return redirect('shop:product_detail', product_id=reply.review.product.id)
-    
-    if request.method == 'POST':
-        product_id = reply.review.product.id
-        reply.delete()
-        return redirect('shop:product_detail', product_id=product_id)
-    
-    return render(request, 'shop/delete_reply.html', {'reply': reply})
+# ─── LiqPay helpers ────────────────────────────────────────────────────────────
+
+def _create_order_from_pending(pending):
+    """Creates Order + OrderItems from PendingCheckout data. Decrements stock."""
+    form_data = pending.form_data
+    cart = pending.cart_snapshot
+
+    product_ids = set()
+    cart_info = {}
+    for cart_key, quantity in cart.items():
+        parts = str(cart_key).split('_')
+        product_id = int(parts[0])
+        flavor_id = int(parts[1]) if len(parts) == 2 else None
+        cart_info[cart_key] = {
+            'product_id': product_id,
+            'flavor_id': flavor_id,
+            'quantity': int(quantity),
+        }
+        product_ids.add(product_id)
+
+    with transaction.atomic():
+        stock_products = {
+            p.id: p
+            for p in Product.objects.select_for_update().filter(id__in=product_ids)
+        }
+        stock_flavors = {
+            pf.id: pf
+            for pf in ProductFlavor.objects.select_for_update().filter(product_id__in=product_ids)
+        }
+
+        order = Order(
+            customer=pending.customer,
+            total=pending.grand_total,
+            payment_method='online',
+            payment_status='paid',
+            status='processing',
+            liqpay_token=str(pending.token),
+            first_name=form_data.get('first_name', ''),
+            last_name=form_data.get('last_name', ''),
+            email=form_data.get('email', ''),
+            phone=form_data.get('phone', ''),
+            address=form_data.get('address', ''),
+            city=form_data.get('city', ''),
+            postal_code=form_data.get('postal_code', ''),
+            postal_branch=form_data.get('postal_branch', ''),
+            delivery_method=form_data.get('delivery_method', ''),
+        )
+        order.save()
+
+        for cart_key, info in cart_info.items():
+            product = stock_products.get(info['product_id'])
+            if not product:
+                continue
+            pf = stock_flavors.get(info['flavor_id']) if info['flavor_id'] else None
+            qty = info['quantity']
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                flavor=pf,
+                quantity=qty,
+                price=product.price,
+            )
+            if pf:
+                ProductFlavor.objects.filter(id=pf.id).update(
+                    stock_quantity=F('stock_quantity') - qty
+                )
+
+    return order
 
 
-# ─── LiqPay ───────────────────────────────────────────────────────────────────
+# ─── LiqPay views ─────────────────────────────────────────────────────────────
 
-def liqpay_pay(request, order_id):
+def liqpay_pay(request, token):
     """
     Показує сторінку з auto-submit формою до LiqPay.
     Юзер потрапляє сюди після оформлення замовлення з онлайн-оплатою.
     """
-    order = get_object_or_404(Order, id=order_id)
-
-    # Якщо замовлення вже оплачене — одразу на success
-    if order.payment_status == 'paid':
-        return render(request, 'shop/checkout_success.html', {'order': order})
+    pending = get_object_or_404(PendingCheckout, token=token)
 
     callback_url = request.build_absolute_uri(reverse('shop:liqpay_callback'))
     result_url = request.build_absolute_uri(
-        reverse('shop:liqpay_result', kwargs={'order_id': order.id})
+        reverse('shop:liqpay_result', kwargs={'token': str(token)})
     )
 
     form_data = liqpay_helper.build_checkout_form(
         public_key=settings.LIQPAY_PUBLIC_KEY,
         private_key=settings.LIQPAY_PRIVATE_KEY,
-        order_id=order.id,
-        amount=order.total,
-        description=f'Замовлення #{order.id} — Sport Nutrition Shop',
+        order_id=str(pending.token),
+        amount=pending.grand_total,
+        description='Замовлення — Sport Nutrition Shop',
         server_url=callback_url,
         result_url=result_url,
         sandbox=settings.LIQPAY_SANDBOX,
     )
 
     return render(request, 'shop/liqpay_redirect.html', {
-        'order': order,
+        'pending': pending,
         'liqpay': form_data,
     })
 
@@ -989,7 +1020,6 @@ def liqpay_callback(request):
     """
     Server-to-server callback від LiqPay.
     LiqPay надсилає POST із полями data та signature.
-    Ми перевіряємо підпис і оновлюємо статус оплати замовлення.
     """
     if request.method != 'POST':
         return HttpResponse(status=405)
@@ -1001,48 +1031,59 @@ def liqpay_callback(request):
         return HttpResponse('invalid signature', status=400)
 
     payload = liqpay_helper.decode_callback(data)
-    order_id = payload.get('order_id')
-    status = payload.get('status')  # 'success', 'sandbox', 'failure', 'error', etc.
+    order_id = payload.get('order_id')  # UUID token string
+    status = payload.get('status')
 
-    try:
-        order = Order.objects.get(id=order_id)
-    except Order.DoesNotExist:
-        return HttpResponse('order not found', status=404)
-
-    # LiqPay повертає 'success' або 'sandbox' для успішних тестових платежів
     if status in ('success', 'sandbox'):
-        order.payment_status = 'paid'
-        order.status = 'processing'
-    else:
-        order.payment_status = 'failed'
+        # Guard: check if order was already created (e.g. by liqpay_result)
+        if not Order.objects.filter(liqpay_token=str(order_id)).exists():
+            try:
+                pending = PendingCheckout.objects.get(token=order_id)
+            except PendingCheckout.DoesNotExist:
+                return HttpResponse('OK')  # already processed
+            _create_order_from_pending(pending)
+            pending.delete()
 
-    order.save(update_fields=['payment_status', 'status'])
     return HttpResponse('OK')
 
 
 @csrf_exempt
-def liqpay_result(request, order_id):
+def liqpay_result(request, token):
     """
     Сторінка, на яку LiqPay перенаправляє юзера після оплати.
-    LiqPay також надсилає data+signature сюди — використовуємо це
-    щоб оновити статус одразу (особливо важливо при локальному тестуванні,
-    коли server_url недоступний).
+    LiqPay надсилає data+signature сюди — використовуємо це для
+    оновлення статусу (особливо важливо при локальному тестуванні).
     """
-    order = get_object_or_404(Order, id=order_id)
+    # If callback already created the order, just show success
+    try:
+        order = Order.objects.get(liqpay_token=str(token))
+        request.session['cart'] = {}
+        request.session.modified = True
+        return render(request, 'shop/checkout_success.html', {'order': order})
+    except Order.DoesNotExist:
+        pass
+
+    try:
+        pending = PendingCheckout.objects.get(token=token)
+    except PendingCheckout.DoesNotExist:
+        return redirect('shop:home')
 
     data = request.POST.get('data', '')
     signature = request.POST.get('signature', '')
 
-    if data and signature and order.payment_status not in ('paid', 'cod'):
+    if data and signature:
         if liqpay_helper.verify_callback(settings.LIQPAY_PRIVATE_KEY, data, signature):
             payload = liqpay_helper.decode_callback(data)
             status = payload.get('status')
             if status in ('success', 'sandbox'):
-                order.payment_status = 'paid'
-                order.status = 'processing'
-                order.save(update_fields=['payment_status', 'status'])
+                order = _create_order_from_pending(pending)
+                pending.delete()
+                request.session['cart'] = {}
+                request.session.modified = True
+                return render(request, 'shop/checkout_success.html', {'order': order})
             elif status in ('failure', 'error', 'reversed'):
-                order.payment_status = 'failed'
-                order.save(update_fields=['payment_status'])
+                # Payment failed — cart stays intact
+                return redirect('shop:cart')
 
-    return render(request, 'shop/checkout_success.html', {'order': order})
+    # No valid data — redirect to cart as fallback
+    return redirect('shop:cart')

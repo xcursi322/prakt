@@ -9,9 +9,15 @@
             {% endif %}
         </a>
             {% if product.get_available_stock > 0 %}
-                <a class="product-card-perfect-plus" href="{% url 'shop:add_to_cart' product.id %}" data-add-to-cart-url="{% url 'shop:add_to_cart' product.id %}" title="Додати в кошик" aria-label="Додати в кошик">
+                <button type="button"
+                        class="product-card-perfect-plus"
+                        title="Додати в кошик"
+                        aria-label="Додати в кошик"
+                        data-product-id="{{ product.id }}"
+                        data-add-to-cart-url="{% url 'shop:add_to_cart' product.id %}"
+                        data-flavors='{{ product.flavors_json }}'>
                     <i class="fas fa-plus"></i>
-                </a>
+                </button>
             {% else %}
                 <span class="product-card-perfect-plus opacity-50 cursor-not-allowed" title="Товар закінчився" aria-label="Товар закінчився">
                     <i class="fas fa-ban"></i>
