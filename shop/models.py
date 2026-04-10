@@ -265,7 +265,7 @@ class ReviewReply(models.Model):
 
 
 class Flavor(models.Model):
-    name = models.CharField(max_length=100, unique=True)  
+    name = models.CharField(max_length=30, unique=True)  
     hex_color = models.CharField(
         max_length=7,
         default='#9CA3AF'
