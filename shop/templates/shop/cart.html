@@ -34,11 +34,11 @@
                         <div class="cart-item-details flex-1">
                             <h3 class="item-name cart-item-title">{{ item.product.name }}</h3>
                             
-                            <!-- Вкус если выбран -->
+                            <!-- Смак -->
                             {% if item.flavor %}
                                 <p class="item-flavor cart-item-meta">
                                     <span class="inline-block w-3 h-3 rounded-full mr-2" style="background-color: {{ item.flavor.hex_color }};"></span>
-                                    Вкус: <span class="font-semibold">{{ item.flavor.name }}</span>
+                                    Смак: <span class="font-semibold">{{ item.flavor.name }}</span>
                                 </p>
                             {% endif %}
                             

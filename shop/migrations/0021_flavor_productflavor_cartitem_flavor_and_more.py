@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=100, unique=True)),
                 ('description', models.TextField(blank=True)),
-                ('hex_color', models.CharField(default='#9CA3AF', help_text='Цвет вкуса в hex формате (например, #FF5733)', max_length=7)),
+                ('hex_color', models.CharField(default='#9CA3AF', max_length=7)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
             options={
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
             name='ProductFlavor',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('stock_quantity', models.PositiveIntegerField(default=0, help_text='Количество в наличии для этого вкуса')),
+                ('stock_quantity', models.PositiveIntegerField(default=0, help_text='Кількість в наявності для цього смаку')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('flavor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='shop.flavor')),

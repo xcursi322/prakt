@@ -192,8 +192,7 @@ document.addEventListener('click', function(e) {
         openFlavorModal(url, flavors);
         return;
     }
-
-    // Без вкусів — одразу AJAX
+    
     const formData = new FormData();
     formData.append('quantity', 1);
     formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');

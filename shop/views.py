@@ -898,20 +898,21 @@ def delete_review(request, review_id):
     if not customer_id:
         return redirect('shop:login')
 
-    admin = get_object_or_404(Customer, id=customer_id)
+    current_customer = get_object_or_404(Customer, id=customer_id)
 
-    if not admin.is_admin:
+    # Видалити може автор відгуку або адміністратор
+    if review.customer_id != current_customer.id and not current_customer.is_admin:
         return redirect('shop:product_detail', product_id=review.product.id)
-    
+
     if request.method == 'POST':
         product_id = review.product.id
         review.delete()
         return redirect('shop:product_detail', product_id=product_id)
-    
+
     return render(request, 'shop/delete_review.html', {'review': review})
 
 
-# Додавання відповіді адміністратором на відгук
+
 
 
 # ─── LiqPay helpers ────────────────────────────────────────────────────────────

@@ -26,7 +26,7 @@
             <form method="post" class="flex-1">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-danger w-full py-3 font-bold">
-                    <i class="fas fa-trash"></i> Видалити назавжди
+                    <i></i> Видалити назавжди
                 </button>
             </form>
             <a href="{% url 'shop:product_detail' review.product.id %}" class="btn btn-secondary flex-1 py-3 font-bold">
