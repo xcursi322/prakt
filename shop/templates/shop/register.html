@@ -51,7 +51,7 @@
                 <!-- Поле email -->
                 <div class="form-group">
                     <label for="{{ form.email.id_for_label }}" class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                        <i class="fas fa-envelope text-blue-600"></i> Email
+                        <i class="fas fa-envelope text-blue-600"></i> Email <span class="text-red-500 ml-1">*</span>
                     </label>
                     {{ form.email|safe }}
                     {% if form.email.errors %}
@@ -63,13 +63,49 @@
                         </div>
                     {% endif %}
                 </div>
-                
+
+                <!-- Ім'я та Прізвище -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="{{ form.first_name.id_for_label }}" class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <i class="fas fa-id-card text-blue-600"></i> Ім'я
+                        </label>
+                        {{ form.first_name|safe }}
+                        {% if form.first_name.errors %}
+                            <div class="form-error">
+                                <i class="fas fa-exclamation-circle"></i>
+                                {% for error in form.first_name.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.last_name.id_for_label }}" class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <i class="fas fa-id-card text-blue-600"></i> Прізвище
+                        </label>
+                        {{ form.last_name|safe }}
+                        {% if form.last_name.errors %}
+                            <div class="form-error">
+                                <i class="fas fa-exclamation-circle"></i>
+                                {% for error in form.last_name.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <!-- Поле пароля -->
                 <div class="form-group">
                     <label for="{{ form.password1.id_for_label }}" class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                        <i class="fas fa-lock text-blue-600"></i> Пароль
+                        <i class="fas fa-lock text-blue-600"></i> Пароль <span class="text-red-500 ml-1">*</span>
                     </label>
                     {{ form.password1|safe }}
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle"></i>
+                        Мінімум 8 символів, хоча б одна велика літера, одна мала та одна цифра.
+                    </p>
                     {% if form.password1.errors %}
                         <div class="form-error">
                             <i class="fas fa-exclamation-circle"></i>

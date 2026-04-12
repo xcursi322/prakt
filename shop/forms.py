@@ -1,6 +1,16 @@
 from django import forms
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 from .models import Order, Customer, Review, ReviewReply
+
+
+def _validate_password_strength(value):
+    if not any(ch.isupper() for ch in value):
+        raise ValidationError('Пароль повинен містити хоча б одну велику літеру')
+    if not any(ch.islower() for ch in value):
+        raise ValidationError('Пароль повинен містити хоча б одну малу літеру')
+    if not any(ch.isdigit() for ch in value):
+        raise ValidationError('Пароль повинен містити хоча б одну цифру')
 
 PAYMENT_CHOICES = [
     ('online', 'Онлайн'),
@@ -112,12 +122,14 @@ class RegistrationForm(forms.ModelForm):
         label='Пароль',
         min_length=8,
         max_length=128,
+        validators=[_validate_password_strength],
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Пароль',
+            'placeholder': 'Пароль (мін. 8 символів, велика/мала літера, цифра)',
             'minlength': '8',
             'maxlength': '128',
-        })
+        }),
+        help_text='Мінімум 8 символів, хоча б одна велика літера, одна мала та одна цифра.',
     )
     password2 = forms.CharField(
         label='Підтвердіть пароль',
@@ -144,16 +156,22 @@ class RegistrationForm(forms.ModelForm):
                 'title': 'Тільки латинські літери, цифри та _',
             }),
             'email': forms.EmailInput(attrs={
+                'required': True,
                 'class': 'form-control',
-                'placeholder': 'Email адреса'
+                'placeholder': 'Email адреса',
+                'maxlength': '254',
             }),
             'first_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ім\'я'
+                'placeholder': 'Ім\'я',
+                'minlength': '2',
+                'maxlength': '50',
             }),
             'last_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Прізвище'
+                'placeholder': 'Прізвище',
+                'minlength': '2',
+                'maxlength': '50',
             }),
         }
 
@@ -170,13 +188,23 @@ class RegistrationForm(forms.ModelForm):
         validator(username)
         return username
 
+    def clean_email(self):
+        email = (self.cleaned_data.get('email') or '').strip().lower()
+        if not email:
+            raise forms.ValidationError('Email є обовʼязковим полем')
+        if Customer.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('Користувач з таким email вже існує')
+        return email
+
     def clean(self):
         cleaned_data = super().clean()
+        password1 = cleaned_data.get('password1')
+        password2 = cleaned_data.get('password2')
 
         if password1 and password2:
             if password1 != password2:
-                raise forms.ValidationError('Паролі не збігаються')
-        
+                self.add_error('password2', 'Паролі не збігаються')
+
         return cleaned_data
 
     def save(self, commit=True):
@@ -195,23 +223,36 @@ class RegistrationForm(forms.ModelForm):
 
 class LoginForm(forms.Form):
     username = forms.CharField(
+        label="Ім'я користувача",
         max_length=50,
         min_length=3,
+        error_messages={
+            'required': "Введіть імʼя користувача",
+            'min_length': "Логін має містити мінімум 3 символи",
+            'max_length': "Логін не може перевищувати 50 символів",
+        },
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Ім\'я користувача',
+            'placeholder': "Ім'я користувача",
             'minlength': '3',
             'maxlength': '50',
+            'autocomplete': 'username',
         })
     )
     password = forms.CharField(
+        label='Пароль',
         min_length=8,
         max_length=128,
+        error_messages={
+            'required': 'Введіть пароль',
+            'min_length': 'Пароль має містити мінімум 8 символів',
+        },
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
             'placeholder': 'Пароль',
             'minlength': '8',
             'maxlength': '128',
+            'autocomplete': 'current-password',
         })
     )
 
