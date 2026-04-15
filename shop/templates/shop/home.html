@@ -136,7 +136,7 @@
                             <p class="line-clamp-2">{{ product.description|truncatewords:15 }}</p>
                         {% endif %}
                         <div class="home-product-footer">
-                            <span class="home-product-price">₴{{ product.price }}</span>
+                            <span class="home-product-price">₴{{ product.get_min_price }}</span>
                             <a href="{% url 'shop:product_detail' product.id %}" class="home-product-link">
                                 Деталі <i class="fas fa-arrow-right"></i>
                             </a>

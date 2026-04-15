@@ -7,7 +7,7 @@ from django.urls import path
 from datetime import date, datetime, time, timedelta
 from django.utils import timezone
 
-from .models import Product, Order, OrderItem, Category, Customer, Review, ReviewReply, SiteVisit, STATUS_CHOICES, Flavor, ProductFlavor, ProductImage
+from .models import Product, Order, OrderItem, Category, Customer, Review, ReviewReply, SiteVisit, STATUS_CHOICES, Flavor, ProductImage, ProductVariant
 
 
 UKR_MONTHS = {
@@ -406,8 +406,8 @@ class CustomerAdminForm(forms.ModelForm):
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
     form = CustomerAdminForm
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_admin', 'is_active', 'created_at')
-    list_filter = ('is_admin', 'is_active', 'created_at')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_active', 'created_at')
+    list_filter = ('is_active', 'created_at')
     search_fields = ('username', 'email', 'first_name', 'last_name')
     readonly_fields = ('created_at', 'updated_at', 'password')
     fieldsets = (
@@ -421,7 +421,7 @@ class CustomerAdmin(admin.ModelAdmin):
             'fields': ('first_name', 'last_name', 'phone', 'address', 'city', 'postal_code')
         }),
         ('Дозволи', {
-            'fields': ('is_admin', 'is_active')
+            'fields': ('is_active',)
         }),
         ('Дати', {
             'fields': ('created_at', 'updated_at'),
@@ -436,26 +436,23 @@ class ProductImageInline(admin.TabularInline):
     fields = ('image', 'order')
 
 
-class ProductFlavorInline(admin.TabularInline):
-    model = ProductFlavor
+class ProductVariantInline(admin.TabularInline):
+    model = ProductVariant
     extra = 1
-    fields = ('flavor', 'stock_quantity')
+    fields = ('weight_label', 'flavor', 'price', 'old_price', 'stock_quantity')
 
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'old_price', 'display_available_stock', 'category', 'created_at')
+    list_display = ('name', 'display_available_stock', 'category', 'created_at')
     list_filter = ('category', 'created_at')
     search_fields = ('name', 'description')
-    fields = ('name', 'price', 'old_price', 'display_available_stock', 'description', 'category')
+    fields = ('name', 'display_available_stock', 'description', 'category')
     readonly_fields = ('display_available_stock',)
-    inlines = [ProductImageInline, ProductFlavorInline]
+    inlines = [ProductImageInline, ProductVariantInline]
 
     def display_available_stock(self, obj):
         stock = obj.get_available_stock()
-        flavors_exist = obj.flavors.exists()
-        if flavors_exist:
-            return f'{stock} шт.'
         return f'{stock} шт.'
     display_available_stock.short_description = 'Кількість в наявності'
 
@@ -463,8 +460,8 @@ class ProductAdmin(admin.ModelAdmin):
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    readonly_fields = ('product', 'quantity', 'price', 'flavor', 'total_price')
-    fields = ('product', 'flavor', 'quantity', 'price', 'total_price')
+    readonly_fields = ('product', 'quantity', 'price', 'variant', 'total_price')
+    fields = ('product', 'variant', 'quantity', 'price', 'total_price')
 
 
 @admin.register(Order)
@@ -529,6 +526,14 @@ class ReviewAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(ProductVariant)
+class ProductVariantAdmin(admin.ModelAdmin):
+    list_display = ('product', 'weight_label', 'flavor', 'price', 'old_price', 'stock_quantity', 'is_in_stock')
+    list_filter = ('product', 'flavor')
+    search_fields = ('product__name', 'flavor__name')
+    fields = ('product', 'weight_label', 'flavor', 'price', 'old_price', 'stock_quantity')
+
+
 @admin.register(Flavor)
 class FlavorAdmin(admin.ModelAdmin):
     list_display = ('name', 'hex_color')
@@ -536,21 +541,5 @@ class FlavorAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Основна інформація', {
             'fields': ('name', 'hex_color')
-        }),
-    )
-
-
-@admin.register(ProductFlavor)
-class ProductFlavorAdmin(admin.ModelAdmin):
-    list_display = ('product', 'flavor', 'stock_quantity', 'is_in_stock')
-    list_filter = ('product', 'flavor')
-    search_fields = ('product__name', 'flavor__name')
-    readonly_fields = ('created_at', 'updated_at')
-    fieldsets = (
-        ('Основна інформація', {
-            'fields': ('product', 'flavor', 'stock_quantity')
-        }),
-        ('Дати', {
-            'fields': ('created_at', 'updated_at')
         }),
     )

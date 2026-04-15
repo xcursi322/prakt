@@ -34,7 +34,6 @@ class Customer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
-    is_admin = models.BooleanField(default=False, help_text='Позначте, щоб надати права адміністратора')
 
     def __str__(self):
         return f"{self.username} ({self.email})"
@@ -81,8 +80,6 @@ class Category(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=200)       # Назва товару
-    price = models.DecimalField(max_digits=10, decimal_places=2)  # Ціна
-    old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Стара ціна")
     stock_quantity = models.PositiveIntegerField(default=0, help_text="Кількість в наявності (використовується тільки якщо немає смаків)")
     description = models.TextField(blank=True)     # Опис
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')  # Категорія
@@ -92,13 +89,17 @@ class Product(models.Model):
         return self.name
     
     def get_available_stock(self):
-        """Отримати доступне кількість товару на основі смаків або загального stock_quantity"""
+        """Отримати доступне кількість товару на основі варіантів або загального stock_quantity"""
         from django.db.models import Sum
-        if self.flavors.exists():
-            total = self.flavors.aggregate(total=Sum('stock_quantity'))['total'] or 0
+        if self.variants.exists():
+            total = self.variants.aggregate(total=Sum('stock_quantity'))['total'] or 0
             return total
-        # Якщо немає смаків — повертаємо загальне кількість з поля
+        # Якщо немає варіантів — повертаємо загальне кількість з поля
         return self.stock_quantity
+
+    def get_min_price(self):
+        first = self.variants.order_by('price').first()
+        return first.price if first else 0
 
     @property
     def main_image(self):
@@ -123,14 +124,15 @@ class ProductImage(models.Model):
 class CartItem(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    flavor = models.ForeignKey('ProductFlavor', on_delete=models.SET_NULL, null=True, blank=True, related_name='cart_items')
+    variant = models.ForeignKey('ProductVariant', on_delete=models.SET_NULL, null=True, blank=True, related_name='cart_items')
     quantity = models.PositiveIntegerField(default=1)
 
     def total_price(self):
-        return self.product.price * self.quantity
+        price = self.variant.price if self.variant else self.product.price
+        return price * self.quantity
     
     class Meta:
-        unique_together = ['customer', 'product', 'flavor']
+        unique_together = ['customer', 'product', 'variant']
     
 class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
@@ -146,6 +148,7 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=20, blank=True)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
     total = models.DecimalField(max_digits=10, decimal_places=2)
+    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
     liqpay_token = models.CharField(max_length=64, blank=True, default='')
@@ -156,6 +159,10 @@ class Order(models.Model):
             'courier_kyiv': 'Курʼєр по Києву',
         }
         return labels.get(self.delivery_method, self.delivery_method)
+
+    @property
+    def items_subtotal(self):
+        return self.total - self.shipping_cost
 
     def __str__(self):
         if self.first_name or self.last_name:
@@ -169,19 +176,25 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey('Product', on_delete=models.CASCADE)
-    flavor = models.ForeignKey('ProductFlavor', on_delete=models.SET_NULL, null=True, blank=True)
+    variant = models.ForeignKey('ProductVariant', on_delete=models.SET_NULL, null=True, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     def total_price(self):
-        # якщо quantity або price дорівнює None, повертаємо 0
         qty = self.quantity if self.quantity is not None else 0
         prc = self.price if self.price is not None else 0
         return qty * prc
 
     def __str__(self):
-        if self.flavor:
-            return f"{self.product.name} ({self.flavor.flavor.name}) x {self.quantity or 0}"
+        if self.variant:
+            parts = []
+            if self.variant.weight_label:
+                parts.append(self.variant.weight_label)
+            if self.variant.flavor:
+                parts.append(self.variant.flavor.name)
+            desc = ', '.join(parts) if parts else ''
+            if desc:
+                return f"{self.product.name} ({desc}) x {self.quantity or 0}"
         return f"{self.product.name} x {self.quantity or 0}"
 
 
@@ -192,6 +205,7 @@ class PendingCheckout(models.Model):
     form_data = models.JSONField()        # поля форми checkout
     cart_snapshot = models.JSONField()   # копія session['cart']
     grand_total = models.DecimalField(max_digits=10, decimal_places=2)
+    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -264,6 +278,30 @@ class ReviewReply(models.Model):
         return str(f"Reply to review {self.review.id}")
 
 
+class ProductVariant(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='variants')
+    weight_label = models.CharField(max_length=20, blank=True, default='', help_text='Грамовка, наприклад: 500г, 1кг')
+    flavor = models.ForeignKey('Flavor', on_delete=models.SET_NULL, null=True, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text='Стара ціна (якщо є знижка)')
+    stock_quantity = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['id']
+        unique_together = ['product', 'weight_label', 'flavor']
+
+    def __str__(self):
+        parts = [self.product.name]
+        if self.weight_label:
+            parts.append(self.weight_label)
+        if self.flavor:
+            parts.append(self.flavor.name)
+        return ' - '.join(parts)
+
+    def is_in_stock(self):
+        return self.stock_quantity > 0
+
+
 class Flavor(models.Model):
     name = models.CharField(max_length=30, unique=True)  
     hex_color = models.CharField(
@@ -278,20 +316,3 @@ class Flavor(models.Model):
     def __str__(self):
         return self.name
 
-
-class ProductFlavor(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='flavors')
-    flavor = models.ForeignKey(Flavor, on_delete=models.CASCADE)
-    stock_quantity = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ['product', 'flavor']
-        ordering = ['flavor__name']
-
-    def __str__(self):
-        return f"{self.product.name} - {self.flavor.name} ({self.stock_quantity} у наявності)"
-    
-    def is_in_stock(self):
-        return self.stock_quantity > 0

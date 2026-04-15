@@ -41,10 +41,7 @@
         <span class="rating-count">{{ product.review_count|default:0 }}</span>
     </div>
     <div class="flex items-baseline gap-2">
-        <div class="product-card-perfect-price">{{ product.price|floatformat:0 }} ГРН</div>
-        {% if product.old_price %}
-            <div class="text-sm text-gray-400 line-through">{{ product.old_price|floatformat:0 }} ГРН</div>
-        {% endif %}
+        <div class="product-card-perfect-price">{{ product.get_min_price|floatformat:0 }} ГРН</div>
     </div>
     {% if product.get_available_stock > 0 %}
         <div class="text-sm text-green-600 font-semibold mt-2">В наявності</div>

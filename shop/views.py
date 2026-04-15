@@ -8,7 +8,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
 
-from .models import Product, OrderItem, Category, Order, Customer, Review, ProductFlavor, PendingCheckout
+from .models import Product, OrderItem, Category, Order, Customer, Review, ProductVariant, PendingCheckout
 from .forms import CheckoutForm, RegistrationForm, LoginForm, ProfileForm, ReviewForm
 from . import liqpay as liqpay_helper
 
@@ -29,29 +29,33 @@ def _build_cart_update_payload(cart, product_id):
     target_quantity = 0
     target_subtotal = 0
 
-    # Get all product IDs from cart
     product_ids = set()
+    variant_ids = set()
     for cart_key in cart.keys():
         parts = str(cart_key).split('_')
         product_ids.add(int(parts[0]))
-    
+        if len(parts) == 2:
+            variant_ids.add(int(parts[1]))
+
     products = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
-    
-    # Calculate totals
+    variants = {v.id: v for v in ProductVariant.objects.filter(id__in=variant_ids)} if variant_ids else {}
+
     for cart_key, quantity in cart.items():
         parts = str(cart_key).split('_')
         pid = int(parts[0])
         product = products.get(pid)
-        
+
         if product:
             quantity = int(quantity or 0)
-            subtotal = product.price * quantity
+            variant = variants.get(int(parts[1])) if len(parts) == 2 else None
+            price = variant.price if variant else product.get_min_price()
+            subtotal = price * quantity
             total += subtotal
             cart_count += quantity
-            
+
             if pid == int(product_id):
                 target_quantity += quantity
-                target_subtotal += subtotal
+                target_subtotal += float(subtotal)
 
     shipping_cost = _get_delivery_cost(total, 'np_branch')
     grand_total = total + shipping_cost
@@ -142,10 +146,10 @@ def catalog(request):
         avg_rating = rating_stats.get('avg_rating')
         p.aggregate_avg_rating = int(round(avg_rating)) if avg_rating is not None else 0
         p.review_count = rating_stats.get('review_count') or 0
-        flavors_qs = p.flavors.filter(stock_quantity__gt=0).select_related('flavor')
+        flavors_qs = p.variants.filter(stock_quantity__gt=0).select_related('flavor')
         p.flavors_json = json.dumps([
-            {'id': pf.id, 'name': pf.flavor.name, 'color': pf.flavor.hex_color, 'stock': pf.stock_quantity}
-            for pf in flavors_qs
+            {'id': v.id, 'name': v.flavor.name if v.flavor else '', 'color': v.flavor.hex_color if v.flavor else '#9CA3AF', 'stock': v.stock_quantity, 'weight': v.weight_label}
+            for v in flavors_qs
         ], ensure_ascii=False)
 
     if _is_ajax_request(request):
@@ -173,6 +177,7 @@ def catalog(request):
 
 # Детальна сторінка продукту
 def product_detail(request, product_id):
+    import json
     product = get_object_or_404(Product, id=product_id)
     reviews = product.reviews.select_related('customer').prefetch_related('replies')
     review_count = reviews.count()
@@ -180,25 +185,36 @@ def product_detail(request, product_id):
     avg_rating = rating_stats.get('avg_rating')
     aggregate_avg_rating = int(round(avg_rating)) if avg_rating is not None else 0
     min_delivery_cost = min(
-        _get_delivery_cost(product.price, 'np_branch'),
-        _get_delivery_cost(product.price, 'courier_kyiv')
+        _get_delivery_cost(product.get_min_price(), 'np_branch'),
+        _get_delivery_cost(product.get_min_price(), 'courier_kyiv')
     )
     delivery_is_free = min_delivery_cost == 0
     related_products = Product.objects.exclude(id=product.id).order_by('-created_at')[:8]
     customer_id = request.session.get('customer_id')
-    is_admin = False
-    
-    # Получение вкусов для товара
-    product_flavors = product.flavors.select_related('flavor').order_by('flavor__name')
+
+    variants_qs = product.variants.select_related('flavor').order_by('id')
+    variants_data = [
+        {
+            'id': v.id,
+            'weight_label': v.weight_label,
+            'flavor_id': v.flavor_id,
+            'flavor_name': v.flavor.name if v.flavor else '',
+            'flavor_color': v.flavor.hex_color if v.flavor else '#9CA3AF',
+            'price': float(v.price),
+            'old_price': float(v.old_price) if v.old_price else None,
+            'stock': v.stock_quantity,
+        }
+        for v in variants_qs
+    ]
+    variants_json = json.dumps(variants_data, ensure_ascii=False)
     available_stock = product.get_available_stock()
-    
+
     if customer_id:
         try:
-            customer = Customer.objects.get(id=customer_id)
-            is_admin = customer.is_admin
+            Customer.objects.get(id=customer_id)
         except Customer.DoesNotExist:
             pass
-    
+
     return render(request, 'shop/product_detail.html', {
         'product': product,
         'reviews': reviews,
@@ -208,16 +224,15 @@ def product_detail(request, product_id):
         'delivery_is_free': delivery_is_free,
         'related_products': related_products,
         'customer_id': customer_id,
-        'is_admin': is_admin,
-        'product_flavors': product_flavors,
-        'available_stock': available_stock
+        'variants_data': variants_data,
+        'variants_json': variants_json,
+        'available_stock': available_stock,
     })
 
 
 # Додавання товару в кошик
 def add_to_cart(request, product_id):
     if not request.session.get('customer_id'):
-        # Якщо користувач не авторизований, використовуємо session ID для гостя
         request.session['guest_session'] = request.session.session_key
 
     quantity = 1
@@ -236,58 +251,50 @@ def add_to_cart(request, product_id):
         quantity = 1
 
     product = get_object_or_404(Product, id=product_id)
-    
-    # Получение выбранного вкуса
-    flavor_id = None
-    product_flavor = None
-    
+
+    variant_id = None
+    variant = None
+
     if request.method == 'POST':
-        requested_flavor_id = request.POST.get('flavor_id')
+        requested_variant_id = request.POST.get('variant_id')
     else:
-        requested_flavor_id = request.GET.get('flavor_id')
-    
-    if requested_flavor_id:
+        requested_variant_id = request.GET.get('variant_id')
+
+    if requested_variant_id:
         try:
-            product_flavor = ProductFlavor.objects.get(
-                id=requested_flavor_id,
-                product_id=product_id
-            )
-            flavor_id = requested_flavor_id
-        except ProductFlavor.DoesNotExist:
+            variant = ProductVariant.objects.get(id=requested_variant_id, product_id=product_id)
+            variant_id = requested_variant_id
+        except ProductVariant.DoesNotExist:
             if _is_ajax_request(request):
                 return JsonResponse({
                     'success': False,
-                    'message': 'Вибраний вкус невірний',
+                    'message': 'Вибраний варіант невірний',
                     'cart_count': sum(int(qty or 0) for qty in request.session.get('cart', {}).values()),
                 }, status=400)
             return redirect('shop:product_detail', product_id=product_id)
 
-    cart = request.session.get('cart', {})  # отримуємо кошик із сесії
+    cart = request.session.get('cart', {})
 
-    # Якщо товар має вкуси але жодного не вибрано — повертаємо помилку
-    has_flavors = ProductFlavor.objects.filter(product_id=product_id).exists()
-    if has_flavors and not flavor_id:
+    has_variants = ProductVariant.objects.filter(product_id=product_id).exists()
+    if has_variants and not variant_id:
         if _is_ajax_request(request):
             return JsonResponse({
                 'success': False,
-                'message': 'Будь ласка, оберіть смак',
+                'message': 'Будь ласка, оберіть варіант',
                 'cart_count': sum(int(qty or 0) for qty in cart.values()),
             }, status=400)
         next_url = request.META.get('HTTP_REFERER')
         return redirect(next_url) if next_url else redirect('shop:product_detail', product_id=product_id)
 
-    # Формируем ключ кошика: product_id или product_id_flavor_id
-    if flavor_id:
-        cart_key = f"{product_id}_{flavor_id}"
+    if variant_id:
+        cart_key = f"{product_id}_{variant_id}"
     else:
         cart_key = str(product_id)
-    
+
     existing_quantity = int(cart.get(cart_key, 0) or 0)
-    
-    # Получаем доступное количество товара
+
     available_stock = product.get_available_stock()
-    
-    # Проверяем наличие товара
+
     if available_stock <= 0:
         if _is_ajax_request(request):
             return JsonResponse({
@@ -299,13 +306,12 @@ def add_to_cart(request, product_id):
         if next_url:
             return redirect(next_url)
         return redirect('shop:catalog')
-    
-    # Проверка наличия конкретного вкуса если он выбран
-    if product_flavor and product_flavor.stock_quantity <= 0:
+
+    if variant and variant.stock_quantity <= 0:
         if _is_ajax_request(request):
             return JsonResponse({
                 'success': False,
-                'message': 'Вибраний вкус закінчився',
+                'message': 'Вибраний варіант закінчився',
                 'cart_count': sum(int(qty or 0) for qty in cart.values()),
             }, status=400)
         next_url = request.META.get('HTTP_REFERER')
@@ -313,12 +319,11 @@ def add_to_cart(request, product_id):
             return redirect(next_url)
         return redirect('shop:product_detail', product_id=product_id)
 
-    # Определяем максимальное количество, которое можно добавить
-    if product_flavor:
-        allowed_to_add = max(product_flavor.stock_quantity - existing_quantity, 0)
+    if variant:
+        allowed_to_add = max(variant.stock_quantity - existing_quantity, 0)
     else:
         allowed_to_add = max(available_stock - existing_quantity, 0)
-    
+
     if allowed_to_add <= 0:
         if _is_ajax_request(request):
             return JsonResponse({
@@ -331,15 +336,10 @@ def add_to_cart(request, product_id):
     actual_add = min(quantity, allowed_to_add)
     cart[cart_key] = existing_quantity + actual_add
     request.session['cart'] = cart
-    request.session.modified = True  # обов'язково для збереження змін
+    request.session.modified = True
 
     if _is_ajax_request(request):
-        total_count = 0
-        for qty in cart.values():
-            try:
-                total_count += int(qty)
-            except (TypeError, ValueError):
-                continue
+        total_count = sum(int(qty) for qty in cart.values() if qty)
         payload = {'success': True, 'cart_count': total_count}
         if actual_add < quantity:
             payload['message'] = 'Додано тільки доступну кількість товару'
@@ -358,59 +358,57 @@ def cart(request):
     cart_items = []
     total = 0
 
-    # Получаем все ID продуктов и вкусов
     product_ids = set()
-    flavor_ids = set()
-    
+    variant_ids = set()
+
     for cart_key in cart.keys():
         parts = str(cart_key).split('_')
+        product_ids.add(int(parts[0]))
         if len(parts) == 2:
-            # Это product_id_flavor_id
-            product_ids.add(int(parts[0]))
-            flavor_ids.add(int(parts[1]))
-        else:
-            # Это просто product_id
-            product_ids.add(int(parts[0]))
-    
-    # Получаем все продукты и вкусы сразу
+            variant_ids.add(int(parts[1]))
+
     products = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
-    product_flavors = {pf.id: pf for pf in ProductFlavor.objects.filter(id__in=flavor_ids).select_related('flavor')}
-    
+    variants = {v.id: v for v in ProductVariant.objects.filter(id__in=variant_ids).select_related('flavor')} if variant_ids else {}
+
     for cart_key, quantity in cart.items():
         parts = str(cart_key).split('_')
-        
+
         if len(parts) == 2:
-            # Это product_id_flavor_id
             product_id = int(parts[0])
-            flavor_id = int(parts[1])
+            variant_id = int(parts[1])
             product = products.get(product_id)
-            product_flavor = product_flavors.get(flavor_id)
-            
-            if product and product_flavor:
-                subtotal = product.price * quantity
+            variant = variants.get(variant_id)
+
+            if product and variant:
+                price = variant.price
+                subtotal = price * quantity
                 cart_items.append({
                     'product': product,
-                    'product_flavor': product_flavor,
-                    'flavor': product_flavor.flavor,
+                    'variant': variant,
+                    'flavor': variant.flavor,
+                    'weight_label': variant.weight_label,
                     'quantity': quantity,
                     'subtotal': subtotal,
-                    'cart_key': cart_key
+                    'price': price,
+                    'cart_key': cart_key,
                 })
                 total += subtotal
         else:
-
             product_id = int(parts[0])
             product = products.get(product_id)
-            
+
             if product:
-                subtotal = product.price * quantity
+                price = product.get_min_price()
+                subtotal = price * quantity
                 cart_items.append({
                     'product': product,
-                    'product_flavor': None,
+                    'variant': None,
                     'flavor': None,
+                    'weight_label': '',
                     'quantity': quantity,
                     'subtotal': subtotal,
-                    'cart_key': cart_key
+                    'price': price,
+                    'cart_key': cart_key,
                 })
                 total += subtotal
 
@@ -432,51 +430,43 @@ def checkout(request):
     if not cart:
         return redirect('shop:cart')
 
-    # Парсуємо ключі кошика для отримання ID продуктів і смаків
     product_ids = set()
-    cart_info = {}  # {cart_key: {'product_id': ..., 'flavor_id': ..., 'quantity': ...}}
-    
+    variant_ids = set()
+    cart_info = {}
+
     for cart_key, quantity in cart.items():
         parts = str(cart_key).split('_')
-        if len(parts) == 2:
-            product_id = int(parts[0])
-            flavor_id = int(parts[1])
-            cart_info[cart_key] = {'product_id': product_id, 'flavor_id': flavor_id, 'quantity': quantity}
-            product_ids.add(product_id)
-        else:
-            product_id = int(parts[0])
-            cart_info[cart_key] = {'product_id': product_id, 'flavor_id': None, 'quantity': quantity}
-            product_ids.add(product_id)
-    
-    # Отримуємо продукти та смаки
+        product_id = int(parts[0])
+        variant_id = int(parts[1]) if len(parts) == 2 else None
+        cart_info[cart_key] = {'product_id': product_id, 'variant_id': variant_id, 'quantity': quantity}
+        product_ids.add(product_id)
+        if variant_id:
+            variant_ids.add(variant_id)
+
     products = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
-    product_flavors = {pf.id: pf for pf in ProductFlavor.objects.filter(product_id__in=product_ids).select_related('flavor', 'product')}
-    
+    variants_map = {v.id: v for v in ProductVariant.objects.filter(id__in=variant_ids).select_related('flavor')} if variant_ids else {}
+
     cart_items = []
     total = 0
 
     for cart_key, info in cart_info.items():
-        product_id = info['product_id']
-        flavor_id = info['flavor_id']
-        quantity = info['quantity']
-        
-        product = products.get(product_id)
+        product = products.get(info['product_id'])
         if not product:
             continue
-        
-        product_flavor = None
-        if flavor_id:
-            product_flavor = product_flavors.get(flavor_id)
-        
-        subtotal = product.price * quantity
+        variant = variants_map.get(info['variant_id']) if info['variant_id'] else None
+        price = variant.price if variant else product.get_min_price()
+        quantity = info['quantity']
+        subtotal = price * quantity
         total += subtotal
         cart_items.append({
             'product': product,
-            'product_flavor': product_flavor,
-            'flavor': product_flavor.flavor if product_flavor else None,
+            'variant': variant,
+            'flavor': variant.flavor if variant else None,
+            'weight_label': variant.weight_label if variant else '',
             'quantity': quantity,
             'subtotal': subtotal,
-            'cart_key': cart_key
+            'price': price,
+            'cart_key': cart_key,
         })
 
     customer = None
@@ -495,29 +485,32 @@ def checkout(request):
         if form.is_valid():
             with transaction.atomic():
                 stock_products = {
-                    product.id: product
-                    for product in Product.objects.select_for_update().filter(id__in=product_ids)
+                    p.id: p
+                    for p in Product.objects.select_for_update().filter(id__in=product_ids)
                 }
-                stock_flavors = {
-                    pf.id: pf
-                    for pf in ProductFlavor.objects.select_for_update().filter(product_id__in=product_ids)
-                }
+                stock_variants = {
+                    v.id: v
+                    for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
+                } if variant_ids else {}
 
                 out_of_stock_items = []
                 for item in cart_items:
                     product = stock_products.get(item['product'].id)
                     requested_quantity = int(item['quantity'] or 0)
-                    
                     if not product:
-                        item_name = item['product'].name
-                        if item['product_flavor']:
-                            item_name += f" ({item['flavor'].name})"
-                        out_of_stock_items.append(item_name)
-                    elif item['product_flavor']:
-                        # Перевіряємо наявність конкретного смаку
-                        pf = stock_flavors.get(item['product_flavor'].id)
-                        if not pf or requested_quantity > pf.stock_quantity:
-                            out_of_stock_items.append(f"{item['product'].name} ({item['flavor'].name})")
+                        out_of_stock_items.append(item['product'].name)
+                    elif item['variant']:
+                        sv = stock_variants.get(item['variant'].id)
+                        if not sv or requested_quantity > sv.stock_quantity:
+                            label = item['product'].name
+                            parts = []
+                            if item['weight_label']:
+                                parts.append(item['weight_label'])
+                            if item['flavor']:
+                                parts.append(item['flavor'].name)
+                            if parts:
+                                label += f" ({', '.join(parts)})"
+                            out_of_stock_items.append(label)
 
                 if out_of_stock_items:
                     form.add_error(
@@ -528,8 +521,6 @@ def checkout(request):
                     payment_method = form.cleaned_data.get('payment_method')
 
                     if payment_method == 'online':
-                        # Online payment: store data in PendingCheckout only.
-                        # Don't create Order yet, don't clear cart.
                         form_fields = [
                             'first_name', 'last_name', 'email', 'phone',
                             'address', 'city', 'postal_code', 'postal_branch',
@@ -540,71 +531,47 @@ def checkout(request):
                             form_data={f: request.POST.get(f, '') for f in form_fields},
                             cart_snapshot=dict(cart),
                             grand_total=grand_total,
+                            shipping_cost=shipping_cost,
                         )
                         return redirect('shop:liqpay_pay', token=str(pending.token))
 
-                    # COD: create Order and items immediately
                     order = form.save(commit=False)
                     order.total = grand_total
+                    order.shipping_cost = shipping_cost
 
                     if customer:
                         order.customer = customer
-
-                        order_first_name = (order.first_name or '').strip()
-                        order_last_name = (order.last_name or '').strip()
-                        order_address = (order.address or '').strip()
-                        order_city = (order.city or '').strip()
-                        order_postal_code = (order.postal_code or '').strip()
-
-                        customer_updates = []
-                        if not (customer.first_name or '').strip() and order_first_name:
-                            customer.first_name = order_first_name
-                            customer_updates.append('first_name')
-
-                        if not (customer.last_name or '').strip() and order_last_name:
-                            customer.last_name = order_last_name
-                            customer_updates.append('last_name')
-
-                        if not (customer.address or '').strip() and order_address:
-                            customer.address = order_address
-                            customer_updates.append('address')
-
-                        if not (customer.city or '').strip() and order_city:
-                            customer.city = order_city
-                            customer_updates.append('city')
-
-                        if not (customer.postal_code or '').strip() and order_postal_code:
-                            customer.postal_code = order_postal_code
-                            customer_updates.append('postal_code')
-
-                        if customer_updates:
-                            customer.save(update_fields=customer_updates + ['updated_at'])
+                        order_updates = {}
+                        for field in ('first_name', 'last_name', 'address', 'city', 'postal_code'):
+                            order_val = (getattr(order, field) or '').strip()
+                            cust_val = (getattr(customer, field) or '').strip()
+                            if not cust_val and order_val:
+                                order_updates[field] = order_val
+                        if order_updates:
+                            for field, val in order_updates.items():
+                                setattr(customer, field, val)
+                            customer.save(update_fields=list(order_updates.keys()) + ['updated_at'])
 
                     order.save()
 
                     for item in cart_items:
                         product = stock_products[item['product'].id]
                         quantity = int(item['quantity'] or 0)
-                        old_flavor = item['product_flavor']
-                        product_flavor = stock_flavors.get(old_flavor.id) if old_flavor else None
-
+                        variant = stock_variants.get(item['variant'].id) if item['variant'] else None
                         OrderItem.objects.create(
                             order=order,
                             product=product,
-                            flavor=product_flavor,
+                            variant=variant,
                             quantity=quantity,
-                            price=product.price,
+                            price=item['price'],
                         )
-
-                        if product_flavor:
-                            ProductFlavor.objects.filter(id=product_flavor.id).update(
+                        if variant:
+                            ProductVariant.objects.filter(id=variant.id).update(
                                 stock_quantity=F('stock_quantity') - quantity
                             )
 
                     request.session['cart'] = {}
                     request.session.modified = True
-
-                    # Наложений платіж — одразу показуємо успіх
                     order.payment_status = 'cod'
                     order.save(update_fields=['payment_status'])
                     return render(request, 'shop/checkout_success.html', {'order': order})
@@ -632,44 +599,37 @@ def checkout(request):
         'shipping_cost': shipping_cost,
         'grand_total': grand_total,
     })
+    
 
 # Збільшення кількості товару в кошику
 def increase_quantity(request, product_id):
     cart = request.session.get('cart', {})
-    
-    # Отримуємо flavor_id з параметрів
+
     if request.method == 'POST':
-        flavor_id = request.POST.get('flavor_id')
+        variant_id = request.POST.get('variant_id')
     else:
-        flavor_id = request.GET.get('flavor_id')
-    
-    if flavor_id:
-        cart_key = f"{product_id}_{flavor_id}"
-    else:
-        cart_key = str(product_id)
-    
+        variant_id = request.GET.get('variant_id')
+
+    cart_key = f"{product_id}_{variant_id}" if variant_id else str(product_id)
+
     if cart_key in cart:
         product = get_object_or_404(Product, id=product_id)
         current_qty = int(cart[cart_key] or 0)
-        
-        # Перевіряємо ліміт кількості
-        if flavor_id:
+
+        if variant_id:
             try:
-                product_flavor = ProductFlavor.objects.get(id=flavor_id, product_id=product_id)
-                max_qty = product_flavor.stock_quantity
-            except ProductFlavor.DoesNotExist:
+                pv = ProductVariant.objects.get(id=variant_id, product_id=product_id)
+                max_qty = pv.stock_quantity
+            except ProductVariant.DoesNotExist:
                 max_qty = product.get_available_stock()
         else:
             max_qty = product.get_available_stock()
-        
+
         if current_qty < max_qty:
             cart[cart_key] = current_qty + 1
         elif _is_ajax_request(request):
             payload = _build_cart_update_payload(cart, product_id)
-            payload.update({
-                'success': False,
-                'message': 'Досягнуто максимальну кількість в наявності'
-            })
+            payload.update({'success': False, 'message': 'Досягнуто максимальну кількість в наявності'})
             return JsonResponse(payload, status=400)
 
     request.session['cart'] = cart
@@ -677,24 +637,18 @@ def increase_quantity(request, product_id):
 
     if _is_ajax_request(request):
         return JsonResponse(_build_cart_update_payload(cart, product_id))
-
     return redirect('shop:cart')
 
 # Зменшення кількості товару в кошику
 def decrease_quantity(request, product_id):
     cart = request.session.get('cart', {})
-    
-    # Отримуємо flavor_id з параметрів
+
     if request.method == 'POST':
-        flavor_id = request.POST.get('flavor_id')
+        variant_id = request.POST.get('variant_id')
     else:
-        flavor_id = request.GET.get('flavor_id')
-    
-    # Формируем ключ
-    if flavor_id:
-        cart_key = f"{product_id}_{flavor_id}"
-    else:
-        cart_key = str(product_id)
+        variant_id = request.GET.get('variant_id')
+
+    cart_key = f"{product_id}_{variant_id}" if variant_id else str(product_id)
 
     if cart_key in cart:
         cart[cart_key] -= 1
@@ -706,24 +660,18 @@ def decrease_quantity(request, product_id):
 
     if _is_ajax_request(request):
         return JsonResponse(_build_cart_update_payload(cart, product_id))
-
     return redirect('shop:cart')
 
 # Видалення товару з кошика
 def remove_from_cart(request, product_id):
     cart = request.session.get('cart', {})
-    
-    # Отримуємо flavor_id з параметрів
+
     if request.method == 'POST':
-        flavor_id = request.POST.get('flavor_id')
+        variant_id = request.POST.get('variant_id')
     else:
-        flavor_id = request.GET.get('flavor_id')
-    
-    # Формируем ключ
-    if flavor_id:
-        cart_key = f"{product_id}_{flavor_id}"
-    else:
-        cart_key = str(product_id)
+        variant_id = request.GET.get('variant_id')
+
+    cart_key = f"{product_id}_{variant_id}" if variant_id else str(product_id)
 
     if cart_key in cart:
         del cart[cart_key]
@@ -733,7 +681,6 @@ def remove_from_cart(request, product_id):
 
     if _is_ajax_request(request):
         return JsonResponse(_build_cart_update_payload(cart, product_id))
-
     return redirect('shop:cart')
 
 # Віддача JS-файлу з фільтрами
@@ -900,8 +847,8 @@ def delete_review(request, review_id):
 
     current_customer = get_object_or_404(Customer, id=customer_id)
 
-    # Видалити може автор відгуку або адміністратор
-    if review.customer_id != current_customer.id and not current_customer.is_admin:
+    # Видалити може тільки автор відгуку
+    if review.customer_id != current_customer.id:
         return redirect('shop:product_detail', product_id=review.product.id)
 
     if request.method == 'POST':
@@ -923,27 +870,30 @@ def _create_order_from_pending(pending):
     cart = pending.cart_snapshot
 
     product_ids = set()
+    variant_ids = set()
     cart_info = {}
     for cart_key, quantity in cart.items():
         parts = str(cart_key).split('_')
         product_id = int(parts[0])
-        flavor_id = int(parts[1]) if len(parts) == 2 else None
+        variant_id = int(parts[1]) if len(parts) == 2 else None
         cart_info[cart_key] = {
             'product_id': product_id,
-            'flavor_id': flavor_id,
+            'variant_id': variant_id,
             'quantity': int(quantity),
         }
         product_ids.add(product_id)
+        if variant_id:
+            variant_ids.add(variant_id)
 
     with transaction.atomic():
         stock_products = {
             p.id: p
             for p in Product.objects.select_for_update().filter(id__in=product_ids)
         }
-        stock_flavors = {
-            pf.id: pf
-            for pf in ProductFlavor.objects.select_for_update().filter(product_id__in=product_ids)
-        }
+        stock_variants = {
+            v.id: v
+            for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
+        } if variant_ids else {}
 
         order = Order(
             customer=pending.customer,
@@ -961,6 +911,7 @@ def _create_order_from_pending(pending):
             postal_code=form_data.get('postal_code', ''),
             postal_branch=form_data.get('postal_branch', ''),
             delivery_method=form_data.get('delivery_method', ''),
+            shipping_cost=pending.shipping_cost,
         )
         order.save()
 
@@ -968,17 +919,18 @@ def _create_order_from_pending(pending):
             product = stock_products.get(info['product_id'])
             if not product:
                 continue
-            pf = stock_flavors.get(info['flavor_id']) if info['flavor_id'] else None
+            variant = stock_variants.get(info['variant_id']) if info['variant_id'] else None
+            price = variant.price if variant else product.get_min_price()
             qty = info['quantity']
             OrderItem.objects.create(
                 order=order,
                 product=product,
-                flavor=pf,
+                variant=variant,
                 quantity=qty,
-                price=product.price,
+                price=price,
             )
-            if pf:
-                ProductFlavor.objects.filter(id=pf.id).update(
+            if variant:
+                ProductVariant.objects.filter(id=variant.id).update(
                     stock_quantity=F('stock_quantity') - qty
                 )
 

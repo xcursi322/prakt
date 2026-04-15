@@ -51,11 +51,15 @@
         <div class="bg-white border-2 border-gray-200 rounded-2xl shadow-md p-8">
             <div class="flex justify-between items-center mb-4 pb-4 border-b-2 border-gray-200">
                 <span class="text-gray-700 text-lg">Сума товарів:</span>
-                <span class="font-bold text-lg">{{ order.total }} ₴</span>
+                <span class="font-bold text-lg">{{ order.items_subtotal|floatformat:2 }} ₴</span>
             </div>
             <div class="flex justify-between items-center mb-4 pb-4 border-b-2 border-gray-200">
                 <span class="text-gray-700 text-lg">Доставка:</span>
-                <span class="font-bold text-lg text-green-600">Безкоштовно</span>
+                {% if order.shipping_cost %}
+                    <span class="font-bold text-lg">{{ order.shipping_cost|floatformat:2 }} ₴</span>
+                {% else %}
+                    <span class="font-bold text-lg text-green-600">Безкоштовно</span>
+                {% endif %}
             </div>
             <div class="flex justify-between items-center text-2xl">
                 <span class="font-bold text-gray-900">До сплати:</span>
