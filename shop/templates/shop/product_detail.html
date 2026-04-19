@@ -344,8 +344,15 @@
             document.getElementById('add-to-cart-form').addEventListener('submit', function (e) {
                 if (variants.length > 0 && !variantInput.value) {
                     e.preventDefault();
+                    e.stopImmediatePropagation();
                     variantError.classList.remove('hidden');
                     variantError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-shopping-cart"></i> Додати в кошик';
+                    }
                 }
             });
         })();
