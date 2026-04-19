@@ -112,6 +112,25 @@ def catalog(request):
     selected_category = None
     search_query = request.GET.get('q', '').strip()
 
+    # Збереження фільтрів у сесії
+    filters = {}
+    if search_query:
+        filters['q'] = search_query
+
+    category_id = request.GET.get('category')
+    if category_id:
+        filters['category'] = category_id
+
+    sort = request.GET.get('sort')
+    if sort:
+        filters['sort'] = sort
+
+    if filters:
+        request.session['catalog_filters'] = filters
+    else:
+        # Якщо немає фільтрів, очистити сесію
+        request.session.pop('catalog_filters', None)
+
     if search_query:
         products = products.filter(name__icontains=search_query)
 
@@ -860,8 +879,6 @@ def delete_review(request, review_id):
 
 
 
-
-
 # ─── LiqPay helpers ────────────────────────────────────────────────────────────
 
 def _create_order_from_pending(pending):
@@ -1002,11 +1019,6 @@ def liqpay_callback(request):
 
 @csrf_exempt
 def liqpay_result(request, token):
-    """
-    Сторінка, на яку LiqPay перенаправляє юзера після оплати.
-    LiqPay надсилає data+signature сюди — використовуємо це для
-    оновлення статусу (особливо важливо при локальному тестуванні).
-    """
     # If callback already created the order, just show success
     try:
         order = Order.objects.get(liqpay_token=str(token))

@@ -204,7 +204,7 @@
                 <a href="{% url 'shop:home' %}" class="btn btn-primary w-full py-3 font-bold flex items-center justify-center gap-2">
                     <i class="fas fa-home"></i> На головну
                 </a>
-                <a href="{% url 'shop:catalog' %}" class="btn btn-secondary w-full py-3 font-bold flex items-center justify-center gap-2">
+                <a href="{{ get_catalog_url }}" class="btn btn-secondary w-full py-3 font-bold flex items-center justify-center gap-2">
                     <i class="fas fa-shopping-bag"></i> Каталог
                 </a>
             </div>

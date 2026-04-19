@@ -39,16 +39,14 @@ class Customer(models.Model):
         return f"{self.username} ({self.email})"
 
     def set_password(self, raw_password):
-        """Хешування пароля"""
         self.password = hashlib.sha256(raw_password.encode()).hexdigest()
 
     def check_password(self, raw_password):
-        """Перевірка пароля"""
         return self.password == hashlib.sha256(raw_password.encode()).hexdigest()
 
 class Category(models.Model):
-    name = models.CharField(max_length=200)  # Назва категорії
-    description = models.TextField(blank=True)  # Опис категорії
+    name = models.CharField(max_length=200) 
+    description = models.TextField(blank=True)  
     parent = models.ForeignKey(
         'self',
         null=True,
@@ -56,7 +54,7 @@ class Category(models.Model):
         on_delete=models.CASCADE,
         related_name='subcategories',
         help_text='Виберіть батьківську категорію (якщо це підкатегорія)'
-    )  # Батьківська категорія для підкатегорій
+    )  
     
     class Meta:
         verbose_name_plural = "Categories"
@@ -67,11 +65,9 @@ class Category(models.Model):
         return self.name
     
     def is_parent(self):
-        """Перевіряє, чи є категорія батьківською"""
         return self.subcategories.exists()
     
     def get_all_subcategories(self):
-        """Отримує всі підкатегорії рекурсивно"""
         subcats = list(self.subcategories.all())
         for subcat in self.subcategories.all():
             subcats.extend(subcat.get_all_subcategories())
@@ -79,11 +75,11 @@ class Category(models.Model):
 
 
 class Product(models.Model):
-    name = models.CharField(max_length=200)       # Назва товару
+    name = models.CharField(max_length=200)      
     stock_quantity = models.PositiveIntegerField(default=0, help_text="Кількість в наявності (використовується тільки якщо немає смаків)")
-    description = models.TextField(blank=True)     # Опис
+    description = models.TextField(blank=True)     
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')  # Категорія
-    created_at = models.DateTimeField(auto_now_add=True)  # Дата створення
+    created_at = models.DateTimeField(auto_now_add=True)  
 
     def __str__(self):
         return self.name

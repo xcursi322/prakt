@@ -3,7 +3,7 @@
 
 {% block content %}
 <!-- Посилання назад -->
-<a href="{% url 'shop:catalog' %}" class="back-link text-blue-600 font-semibold mb-6 inline-flex items-center gap-2 hover:gap-3">
+<a href="{{ get_catalog_url }}" class="back-link text-blue-600 font-semibold mb-6 inline-flex items-center gap-2 hover:gap-3">
     <i class="fas fa-chevron-left"></i> Повернутись до каталогу
 </a>
 

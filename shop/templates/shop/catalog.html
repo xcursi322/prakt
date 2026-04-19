@@ -78,19 +78,24 @@
     {% include 'shop/partials/catalog_products_grid.html' %}
 </div>
 
-<!-- Модальне вікно вибору смаку -->
+<!-- Модальне вікно вибору ваги і смаку -->
 <div id="flavorModal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
     <div class="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
         <!-- Заголовок -->
         <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
-            <span class="text-sm font-bold text-gray-500 tracking-widest uppercase">Виберіть смак</span>
+            <span class="text-sm font-bold text-gray-500 tracking-widest uppercase">Виберіть вагу та смак</span>
             <button onclick="closeFlavorModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
         </div>
 
-        <!-- Список смаків -->
+        <!-- Вибір ваги -->
         <div class="overflow-y-auto flex-1 px-5 py-3">
-            <p class="text-sm text-gray-500 mb-3">Смаки:</p>
-            <div id="flavorList" class="space-y-1"></div>
+            <p class="text-sm text-gray-500 mb-3">Грамовка:</p>
+            <div id="weightList" class="flex flex-wrap gap-2"></div>
+
+            <div id="flavorSectionWrapper" class="mt-6 hidden">
+                <p class="text-sm text-gray-500 mb-3">Смаки:</p>
+                <div id="flavorList" class="space-y-1"></div>
+            </div>
         </div>
 
         <!-- Кнопка -->
@@ -107,34 +112,85 @@
 <script>
 let _flavorModalUrl = '';
 let _flavorModalSelected = null;
+let _flavorModalWeight = null;
+let _flavorModalVariants = [];
 
 function openFlavorModal(url, flavors) {
     _flavorModalUrl = url;
     _flavorModalSelected = null;
-    const list = document.getElementById('flavorList');
-    list.innerHTML = '';
-    flavors.forEach(f => {
-        const item = document.createElement('label');
-        item.className = 'flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer hover:bg-gray-50 transition';
-        item.innerHTML = `
-            <input type="radio" name="modal_flavor" value="${f.id}" class="accent-red-600 w-4 h-4 flex-shrink-0">
-            <span class="w-4 h-4 rounded-full flex-shrink-0 border border-gray-200" style="background:${f.color}"></span>
-            <span class="font-semibold text-gray-800 text-sm">${f.name}</span>
-        `;
-        item.querySelector('input').addEventListener('change', () => { _flavorModalSelected = f.id; });
-        list.appendChild(item);
+    _flavorModalWeight = null;
+    _flavorModalVariants = flavors;
+
+    const weightList = document.getElementById('weightList');
+    const flavorWrapper = document.getElementById('flavorSectionWrapper');
+    const flavorList = document.getElementById('flavorList');
+    weightList.innerHTML = '';
+    flavorList.innerHTML = '';
+    flavorWrapper.classList.add('hidden');
+
+    const weights = [...new Map(flavors.map(f => [f.weight || 'Без смаку', f.weight || 'Без смаку']))].map(([key]) => key);
+
+    weights.forEach(weight => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'weight-btn px-4 py-2 border-2 border-gray-300 rounded-lg font-semibold text-sm text-gray-700 hover:border-blue-400 hover:text-blue-700 transition';
+        btn.textContent = weight;
+        btn.dataset.weight = weight;
+        btn.addEventListener('click', () => selectWeight(weight));
+        weightList.appendChild(btn);
     });
+
+    if (weights.length === 1) {
+        selectWeight(weights[0]);
+    }
+
     const modal = document.getElementById('flavorModal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
 }
 
-function closeFlavorModal() {
-    const modal = document.getElementById('flavorModal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    document.body.style.overflow = '';
+function selectWeight(weight) {
+    _flavorModalWeight = weight;
+    _flavorModalSelected = null;
+
+    document.querySelectorAll('.weight-btn').forEach(btn => {
+        if (btn.dataset.weight === weight) {
+            btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+        } else {
+            btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+        }
+    });
+
+    renderFlavorBtns(weight);
+}
+
+function renderFlavorBtns(weight) {
+    const flavorWrapper = document.getElementById('flavorSectionWrapper');
+    const flavorList = document.getElementById('flavorList');
+    flavorList.innerHTML = '';
+
+    const variants = _flavorModalVariants.filter(v => (v.weight || 'Без смаку') === weight);
+    const flavors = [...new Map(variants.map(v => [v.id, v]))].map(([_, variant]) => variant);
+
+    if (flavors.length === 0) {
+        flavorWrapper.classList.add('hidden');
+        return;
+    }
+
+    flavorWrapper.classList.remove('hidden');
+
+    flavors.forEach(f => {
+        const item = document.createElement('label');
+        item.className = 'flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer hover:bg-gray-50 transition';
+        item.innerHTML = `
+            <input type="radio" name="modal_flavor" value="${f.id}" class="accent-red-600 w-4 h-4 flex-shrink-0">
+            <span class="w-4 h-4 rounded-full flex-shrink-0 border border-gray-200" style="background:${f.color}"></span>
+            <span class="font-semibold text-gray-800 text-sm">${f.name || 'Без смаку'}</span>
+        `;
+        item.querySelector('input').addEventListener('change', () => { _flavorModalSelected = f.id; });
+        flavorList.appendChild(item);
+    });
 }
 
 function submitFlavorModal() {
@@ -143,6 +199,10 @@ function submitFlavorModal() {
             l.classList.add('animate-pulse');
             setTimeout(() => l.classList.remove('animate-pulse'), 600);
         });
+        document.querySelectorAll('.weight-btn').forEach(btn => {
+            btn.classList.add('animate-pulse');
+            setTimeout(() => btn.classList.remove('animate-pulse'), 600);
+        });
         return;
     }
     const btn = document.getElementById('flavorAddBtn');
@@ -150,7 +210,7 @@ function submitFlavorModal() {
     btn.textContent = '...';
 
     const formData = new FormData();
-    formData.append('flavor_id', _flavorModalSelected);
+    formData.append('variant_id', _flavorModalSelected);
     formData.append('quantity', 1);
     formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
@@ -172,6 +232,13 @@ function submitFlavorModal() {
         btn.disabled = false;
         btn.innerHTML = 'Додати у кошик <i class="fas fa-chevron-right text-xs"></i>';
     });
+}
+
+function closeFlavorModal() {
+    const modal = document.getElementById('flavorModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
 }
 
 document.getElementById('flavorModal').addEventListener('click', function(e) {
