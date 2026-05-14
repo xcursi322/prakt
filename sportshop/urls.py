@@ -19,10 +19,13 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('shop.urls', namespace='shop')),
+    # Favicon redirect
+    path('favicon.ico', RedirectView.as_view(url=settings.STATIC_URL + 'shop/logo.png', permanent=True)),
 ]
 
 if settings.DEBUG:
