@@ -525,9 +525,9 @@
                 <div class="text-sm text-gray-400 -mt-4 leading-relaxed">{{ p.description|truncatechars:60 }}</div>
 
                 <div class="flex items-baseline gap-2 mt-2">
-                    <div class="product-card-perfect-price">{{ p.price|floatformat:0 }} ГРН</div>
-                    {% if p.old_price %}
-                        <div class="text-sm text-gray-400 line-through">{{ p.old_price|floatformat:0 }} ГРН</div>
+                    <div class="product-card-perfect-price">{{ p.get_min_price|floatformat:0 }} ₴</div>
+                    {% if p.get_min_old_price %}
+                        <div class="text-sm text-gray-400 line-through">{{ p.get_min_old_price|floatformat:0 }} ₴</div>
                     {% endif %}
                 </div>
 

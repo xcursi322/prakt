@@ -248,6 +248,10 @@
             grandTotalEl.textContent = formatPrice(grandTotal);
         };
 
+        postalBranchInput.addEventListener('input', () => {
+            postalBranchInput.value = postalBranchInput.value.replace(/\D/g, '').slice(0, 6);
+        });
+
         syncDeliveryUI();
         deliverySelect.addEventListener('change', syncDeliveryUI);
     })();

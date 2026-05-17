@@ -97,6 +97,10 @@ class Product(models.Model):
         first = self.variants.order_by('price').first()
         return first.price if first else 0
 
+    def get_min_old_price(self):
+        first = self.variants.order_by('price').first()
+        return first.old_price if first and first.old_price is not None else None
+
     @property
     def main_image(self):
         return self.extra_images.order_by('order').first()

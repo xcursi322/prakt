@@ -55,6 +55,26 @@ class CheckoutForm(forms.ModelForm):
         }
     )
 
+    postal_branch = forms.CharField(
+        required=False,
+        max_length=6,
+        label='Відділення НП',
+        validators=[
+            RegexValidator(
+                regex=r'^\d*$',
+                message='Відділення НП може містити тільки цифри',
+            ),
+        ],
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Вкажіть номер відділення НП',
+            'data-postal-branch': 'true',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'maxlength': '6',
+        }),
+    )
+
     class Meta:
         model = Order
         fields = [
@@ -89,7 +109,6 @@ class CheckoutForm(forms.ModelForm):
             'address': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Вулиця, будинок, квартира'}),
             'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Місто'}),
             'postal_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Поштовий індекс'}),
-            'postal_branch': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Вкажіть номер/назву відділення НП', 'data-postal-branch': 'true'}),
         }
 
     def clean_first_name(self):
@@ -97,6 +116,14 @@ class CheckoutForm(forms.ModelForm):
 
     def clean_last_name(self):
         return _validate_name_without_digits(self.cleaned_data.get('last_name'), 'Прізвище')
+
+    def clean_postal_branch(self):
+        postal_branch = (self.cleaned_data.get('postal_branch') or '').strip()
+        if postal_branch and not postal_branch.isdigit():
+            raise forms.ValidationError('Відділення НП може містити тільки цифри')
+        if len(postal_branch) > 6:
+            raise forms.ValidationError('Відділення НП не може містити більше ніж 6 цифр')
+        return postal_branch
 
     def clean(self):
         cleaned_data = super().clean()
