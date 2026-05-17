@@ -3,7 +3,7 @@ from django.http import FileResponse, JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.db import transaction
-from django.db.models import F, Avg, Sum
+from django.db.models import F, Avg, Sum, Min
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
@@ -152,9 +152,9 @@ def catalog(request):
     # Сортування за ціною
     sort = request.GET.get('sort')
     if sort == 'price_asc':
-        products = products.order_by('price')
+        products = products.annotate(min_price=Min('variants__price')).order_by('min_price')
     elif sort == 'price_desc':
-        products = products.order_by('-price')
+        products = products.annotate(min_price=Min('variants__price')).order_by('-min_price')
     elif sort == 'newest':
         products = products.order_by('-created_at')
 
