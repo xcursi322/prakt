@@ -23,7 +23,7 @@ def _get_delivery_cost(subtotal, delivery_method):
     return 0 if subtotal >= 1500 else 70
 
 
-def _build_cart_update_payload(cart, product_id):
+def _build_cart_update_payload(cart, product_id, variant_id=None):
     total = 0
     cart_count = 0
     target_quantity = 0
@@ -40,6 +40,8 @@ def _build_cart_update_payload(cart, product_id):
     products = {p.id: p for p in Product.objects.filter(id__in=product_ids)}
     variants = {v.id: v for v in ProductVariant.objects.filter(id__in=variant_ids)} if variant_ids else {}
 
+    target_key = f"{product_id}_{variant_id}" if variant_id else str(product_id)
+
     for cart_key, quantity in cart.items():
         parts = str(cart_key).split('_')
         pid = int(parts[0])
@@ -53,16 +55,17 @@ def _build_cart_update_payload(cart, product_id):
             total += subtotal
             cart_count += quantity
 
-            if pid == int(product_id):
-                target_quantity += quantity
-                target_subtotal += float(subtotal)
+            if cart_key == target_key:
+                target_quantity = quantity
+                target_subtotal = float(subtotal)
 
     shipping_cost = _get_delivery_cost(total, 'np_branch')
     grand_total = total + shipping_cost
 
-    return {
+    payload = {
         'success': True,
         'product_id': int(product_id),
+        'variant_id': int(variant_id) if variant_id else None,
         'quantity': target_quantity,
         'subtotal': float(target_subtotal),
         'total': float(total),
@@ -74,6 +77,8 @@ def _build_cart_update_payload(cart, product_id):
         'removed': target_quantity <= 0,
         'empty': cart_count == 0,
     }
+
+    return payload
 
 # Головна сторінка
 def home(request):
@@ -647,7 +652,7 @@ def increase_quantity(request, product_id):
         if current_qty < max_qty:
             cart[cart_key] = current_qty + 1
         elif _is_ajax_request(request):
-            payload = _build_cart_update_payload(cart, product_id)
+            payload = _build_cart_update_payload(cart, product_id, variant_id)
             payload.update({'success': False, 'message': 'Досягнуто максимальну кількість в наявності'})
             return JsonResponse(payload, status=400)
 
@@ -655,7 +660,7 @@ def increase_quantity(request, product_id):
     request.session.modified = True
 
     if _is_ajax_request(request):
-        return JsonResponse(_build_cart_update_payload(cart, product_id))
+        return JsonResponse(_build_cart_update_payload(cart, product_id, variant_id))
     return redirect('shop:cart')
 
 # Зменшення кількості товару в кошику
@@ -678,7 +683,7 @@ def decrease_quantity(request, product_id):
     request.session.modified = True
 
     if _is_ajax_request(request):
-        return JsonResponse(_build_cart_update_payload(cart, product_id))
+        return JsonResponse(_build_cart_update_payload(cart, product_id, variant_id))
     return redirect('shop:cart')
 
 # Видалення товару з кошика

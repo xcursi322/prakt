@@ -264,7 +264,16 @@ function setCartActionsLoading(cartItem, isLoading) {
 
 function applyCartUpdate(data) {
     const productId = String(data.product_id);
-    const cartItem = document.querySelector(`[data-cart-item][data-product-id="${productId}"]`);
+    const variantId = data.variant_id ? String(data.variant_id) : null;
+    let cartItemSelector = `[data-cart-item][data-product-id="${productId}"]`;
+    let summaryRowSelector = `[data-summary-row][data-product-id="${productId}"]`;
+
+    if (variantId) {
+        cartItemSelector += `[data-variant-id="${variantId}"]`;
+        summaryRowSelector += `[data-variant-id="${variantId}"]`;
+    }
+
+    const cartItem = document.querySelector(cartItemSelector);
 
     if (cartItem) {
         if (data.removed) {
@@ -287,7 +296,7 @@ function applyCartUpdate(data) {
         }
     };
 
-    const summaryRow = document.querySelector(`[data-summary-row][data-product-id="${productId}"]`);
+    const summaryRow = document.querySelector(summaryRowSelector);
     if (summaryRow) {
         if (data.removed) {
             summaryRow.remove();
