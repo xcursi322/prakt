@@ -611,6 +611,12 @@ html.theme-dark .delivery-zones-tags span {
 	color: var(--cart-ink);
 	letter-spacing: 0.01em;
 	margin-bottom: 0.2rem;
+	line-height: 1.25;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+	min-height: 2.75rem;
 }
 
 .cart-item-meta {
