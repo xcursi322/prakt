@@ -579,7 +579,7 @@ html.theme-dark .delivery-zones-tags span {
 	border: 1px solid var(--cart-border);
 	padding: 1.1rem 1.2rem;
 	display: grid;
-	grid-template-columns: 96px 1fr auto auto;
+	grid-template-columns: 96px minmax(220px, 1fr) minmax(96px, auto) minmax(140px, auto);
 	gap: 1rem;
 	align-items: center;
 	position: relative;
@@ -681,10 +681,23 @@ html.theme-dark .delivery-zones-tags span {
 	gap: 0.35rem;
 }
 
-.cart-item-subtotal {
+[data-summary-row] {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 0.75rem;
+}
+
+[data-summary-row] > div {
+	min-width: 0;
+}
+
+[data-summary-subtotal] {
 	font-size: 1.4rem;
 	font-weight: 900;
 	color: var(--cart-ink);
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .cart-remove {
