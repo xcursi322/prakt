@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MaxLengthValidator
 import hashlib
 import uuid
 
@@ -77,7 +78,7 @@ class Category(models.Model):
 class Product(models.Model):
     name = models.CharField(max_length=200)      
     stock_quantity = models.PositiveIntegerField(default=0, help_text="Кількість в наявності (використовується тільки якщо немає смаків)")
-    description = models.TextField(blank=True)     
+    description = models.TextField(blank=True, max_length=1000, validators=[MaxLengthValidator(1000)])     
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')  # Категорія
     created_at = models.DateTimeField(auto_now_add=True)  
 
