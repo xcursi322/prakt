@@ -3,7 +3,8 @@ from django.http import FileResponse, JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.db import transaction
-from django.db.models import F, Avg, Sum, Min
+from django.db.models import F, Avg, Sum, Min, Value, FloatField
+from django.db.models.functions import Coalesce
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
@@ -160,6 +161,10 @@ def catalog(request):
         products = products.annotate(min_price=Min('variants__price')).order_by('min_price')
     elif sort == 'price_desc':
         products = products.annotate(min_price=Min('variants__price')).order_by('-min_price')
+    elif sort == 'rating_desc':
+        products = products.annotate(
+            avg_rating=Coalesce(Avg('reviews__rating'), Value(0.0), output_field=FloatField())
+        ).order_by('-avg_rating', '-created_at')
     elif sort == 'newest':
         products = products.order_by('-created_at')
 
