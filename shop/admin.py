@@ -7,7 +7,7 @@ from django.urls import path
 from datetime import date, datetime, time, timedelta
 from django.utils import timezone
 
-from .models import Product, Order, OrderItem, Category, Customer, Review, ReviewReply, SiteVisit, STATUS_CHOICES, Flavor, ProductImage, ProductVariant
+from .models import Product, Order, OrderItem, Category, Customer, Review, ReviewReply, SiteVisit, STATUS_CHOICES, Flavor, ProductImage, ProductVariant, NewsletterSubscriber
 
 
 UKR_MONTHS = {
@@ -455,6 +455,12 @@ class ProductAdmin(admin.ModelAdmin):
         stock = obj.get_available_stock()
         return f'{stock} шт.'
     display_available_stock.short_description = 'Кількість в наявності'
+
+@admin.register(NewsletterSubscriber)
+class NewsletterSubscriberAdmin(admin.ModelAdmin):
+    list_display = ('email', 'created_at')
+    search_fields = ('email',)
+    readonly_fields = ('created_at',)
 
 # Щоб бачити товари всередині замовлення прямо в адмінці
 class OrderItemInline(admin.TabularInline):

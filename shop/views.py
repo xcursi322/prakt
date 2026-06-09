@@ -7,6 +7,8 @@ from django.db.models import F, Avg, Sum, Min, Value, FloatField
 from django.db.models.functions import Coalesce
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 
 from .models import Product, OrderItem, Category, Order, Customer, Review, ProductVariant, PendingCheckout
@@ -83,6 +85,15 @@ def _build_cart_update_payload(cart, product_id, variant_id=None):
 
 # Головна сторінка
 def home(request):
+    newsletter_status = request.GET.get('newsletter_status')
+    newsletter_message = None
+    if newsletter_status == 'ok':
+        newsletter_message = 'Дякуємо! Ви успішно підписалися на розсилку.'
+    elif newsletter_status == 'exists':
+        newsletter_message = 'Цей email вже підписаний на розсилку.'
+    elif newsletter_status == 'invalid':
+        newsletter_message = 'Будь ласка, введіть правильну email адресу.'
+
     popular_products = list(
         Product.objects
         .annotate(total_sold=Sum('orderitem__quantity'))
@@ -102,8 +113,30 @@ def home(request):
         featured_products = popular_products
 
     return render(request, 'shop/home.html', {
-        'featured_products': featured_products
+        'featured_products': featured_products,
+        'newsletter_message': newsletter_message,
     })
+
+# Підписка на розсилку
+
+def newsletter_subscribe(request):
+    if request.method != 'POST':
+        return redirect('shop:home')
+
+    email = (request.POST.get('email') or '').strip().lower()
+    if not email:
+        return redirect(reverse('shop:home') + '?newsletter_status=invalid')
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return redirect(reverse('shop:home') + '?newsletter_status=invalid')
+
+    from .models import NewsletterSubscriber
+    subscriber, created = NewsletterSubscriber.objects.get_or_create(email=email)
+    if created:
+        return redirect(reverse('shop:home') + '?newsletter_status=ok')
+    return redirect(reverse('shop:home') + '?newsletter_status=exists')
 
 # Доставка
 def delivery(request):

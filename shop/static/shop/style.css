@@ -1222,6 +1222,14 @@ html.theme-dark .delivery-zones-tags span {
 	display: flex;
 	gap: 0.8rem;
 	flex-wrap: wrap;
+	justify-content: center;
+}
+.home-newsletter-form-inner {
+	display: flex;
+	gap: 0.8rem;
+	flex-wrap: wrap;
+	width: 100%;
+	justify-content: center;
 }
 
 .home-newsletter-form input {
@@ -1235,6 +1243,12 @@ html.theme-dark .delivery-zones-tags span {
 }
 .home-newsletter-form input::placeholder {
 	color: rgba(15, 23, 42, 0.45);
+}
+
+.newsletter-status {
+	margin-top: 1rem;
+	color: #d1fae5;
+	font-weight: 600;
 }
 
 .home-final-cta {

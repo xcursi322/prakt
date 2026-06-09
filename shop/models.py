@@ -45,6 +45,17 @@ class Customer(models.Model):
     def check_password(self, raw_password):
         return self.password == hashlib.sha256(raw_password.encode()).hexdigest()
 
+class NewsletterSubscriber(models.Model):
+    email = models.EmailField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Підписник'
+        verbose_name_plural = 'Підписники'
+
+    def __str__(self):
+        return self.email
+
 class Category(models.Model):
     name = models.CharField(max_length=200) 
     description = models.TextField(blank=True)  

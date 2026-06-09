@@ -168,9 +168,15 @@
         <h2>Бути в курсі акцій</h2>
         <p>Підпишіться на розсилку і отримуйте інформацію про нові товари та спеціальні пропозиції</p>
         <div class="home-newsletter-form">
-            <input type="email" placeholder="Ваша електронна адреса...">
-            <button class="home-cta home-cta-primary">Підписатися</button>
+            <form method="post" action="{% url 'shop:newsletter_subscribe' %}" class="home-newsletter-form-inner">
+                {% csrf_token %}
+                <input type="email" name="email" placeholder="Ваша електронна адреса..." required>
+                <button type="submit" class="home-cta home-cta-primary">Підписатися</button>
+            </form>
         </div>
+        {% if newsletter_message %}
+            <div class="newsletter-status">{{ newsletter_message }}</div>
+        {% endif %}
     </div>
 </section>
 
