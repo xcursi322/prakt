@@ -1400,6 +1400,12 @@ html.theme-dark .delivery-zones-tags span {
 	font-size: 1.08rem;
 	letter-spacing: 0.04em;
 }
+.product-card-perfect-footer {
+	margin-top: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+}
 .product-card-perfect-rating .star-full {
 	color: #fbbf24;
 	font-size: 1.08rem;

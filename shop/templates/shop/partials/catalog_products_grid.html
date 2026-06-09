@@ -40,14 +40,14 @@
         </span>
         <span class="rating-count">{{ product.review_count|default:0 }}</span>
     </div>
-    <div class="flex items-baseline gap-2">
+    <div class="product-card-perfect-footer">
         <div class="product-card-perfect-price">{{ product.get_min_price|floatformat:0 }} ГРН</div>
+        {% if product.get_available_stock > 0 %}
+            <div class="text-sm text-green-600 font-semibold">В наявності</div>
+        {% else %}
+            <div class="text-sm text-red-600 font-semibold">Товар закінчився</div>
+        {% endif %}
     </div>
-    {% if product.get_available_stock > 0 %}
-        <div class="text-sm text-green-600 font-semibold mt-2">В наявності</div>
-    {% else %}
-        <div class="text-sm text-red-600 font-semibold mt-2">Товар закінчився</div>
-    {% endif %}
 </div>
 {% empty %}
 <div class="no-products">Товари не знайдені</div>
