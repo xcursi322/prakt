@@ -1230,6 +1230,11 @@ html.theme-dark .delivery-zones-tags span {
 	border-radius: 999px;
 	border: none;
 	font-weight: 600;
+	background: #ffffff;
+	color: #0f172a;
+}
+.home-newsletter-form input::placeholder {
+	color: rgba(15, 23, 42, 0.45);
 }
 
 .home-final-cta {
